@@ -5,7 +5,7 @@ import path from 'path';
 
 // Ollama local model config
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? 'llama3';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? 'qwen3.5:4b';
 
 interface QnaMessage {
   role: 'user' | 'assistant';
@@ -59,10 +59,51 @@ function loadCountryResearch(workspaceId: string, countryId: string, topicFile: 
   }
 }
 
-function classifyTargetCountries(
+async function classifyTargetCountries(
   question: string,
   allCountries: { id: string; name: string }[]
-): { id: string; name: string }[] {
+): Promise<{ id: string; name: string }[]> {
+  try {
+    const countryListStr = allCountries.map((c) => `${c.id}:${c.name}`).join(', ');
+    const systemPrompt = `You are a helper that identifies which countries are referenced in a user's question about a Model UN committee.
+Given a question and a list of available countries in the format "id:Name", return a JSON array containing only the country IDs that are targeted by the question.
+
+Example:
+Available: "mexico:Mexico, usa:United States, china:China"
+Question: "Who would block this resolution, Mexico or the US?"
+Output: ["mexico", "usa"]
+
+Example 2:
+Available: "mexico:Mexico, usa:United States, china:China"
+Question: "What is the stance of the G77?"
+Output: []
+
+Available countries:
+${countryListStr}
+
+Return ONLY a JSON array of strings (e.g. ["mexico", "usa"]). Do not add explanation or markdown code blocks.`;
+
+    const response = await callOllama([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: question }
+    ]);
+
+    let matchedIds: string[] = [];
+    try {
+      matchedIds = JSON.parse(response.trim());
+    } catch {
+      const match = response.match(/\[[\s\S]*\]/);
+      if (match) matchedIds = JSON.parse(match[0]);
+    }
+
+    if (Array.isArray(matchedIds)) {
+      const matchedSet = new Set(matchedIds.map((id) => String(id).toLowerCase().trim()));
+      return allCountries.filter((c) => matchedSet.has(c.id.toLowerCase().trim()));
+    }
+  } catch (err) {
+    console.error('[classifyTargetCountries] error', err);
+  }
+  // Fallback to naive substring matching if Ollama fails/is offline
   const lower = question.toLowerCase();
   return allCountries.filter((c) => lower.includes(c.name.toLowerCase()));
 }
@@ -84,7 +125,7 @@ export async function POST(req: NextRequest) {
       readWorkspaceFile(workspaceId, 'qna/session.json') ?? { messages: [] };
 
     // Classification: which countries does this question target?
-    const targeted = classifyTargetCountries(question, countries);
+    const targeted = await classifyTargetCountries(question, countries);
     const isBroadQuery = targeted.length === 0 || targeted.length > 3;
 
     let context = '';
