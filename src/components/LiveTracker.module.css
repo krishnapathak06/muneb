@@ -1,0 +1,293 @@
+.trackerContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+}
+
+.topControlRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+
+/* Recorder Card */
+.recorderCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  gap: var(--space-4);
+}
+.recorderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.recordIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.statusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.statusRecording {
+  background: var(--accent-danger);
+  box-shadow: 0 0 10px var(--accent-danger);
+  animation: pulse 1.5s infinite;
+}
+.recordingLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.timer {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+.recordingActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.chunkSelector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Playback Card */
+.playbackCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  gap: var(--space-3);
+}
+.playerTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.playerTimeline {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.timeLabel {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  min-width: 36px;
+}
+.seekBar {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-input);
+  border-radius: var(--radius-full);
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+}
+.seekBar::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s;
+}
+.seekBar::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+.playerSpeedControl {
+  display: flex;
+  align-items: center;
+}
+
+/* Main Layout Split */
+.trackerMain {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+.loggerCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Speaker Logging Card */
+.loggerBox {
+  padding: var(--space-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+.sectionHeading {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.helperText {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+.speakerSelectorWrapper {
+  position: relative;
+  width: 100%;
+}
+.countrySearchDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.dropdownOption {
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.dropdownOption:hover {
+  background: var(--bg-card);
+}
+.activeSpeakerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  animation: fadeIn 0.18s ease;
+}
+.speakerSelectedText {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* Events Feed */
+.speechLogScrollContainer {
+  display: flex;
+  flex-direction: column;
+}
+.emptyEvents {
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+  color: var(--text-muted);
+}
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-8);
+}
+
+/* Vibrant Focus-Glow Speech Card */
+.speechCard {
+  padding: var(--space-4);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+}
+.speechCardFocused {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 16px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.speechCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+.speechSpeakerInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.speakerDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+}
+.speakerCardName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.speechTime {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.textareaWrapper {
+  position: relative;
+  width: 100%;
+}
+.speechTextArea {
+  resize: vertical;
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  width: 100%;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.speechTextArea:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
+  outline: none;
+}
+.dictationIndicator {
+  position: absolute;
+  bottom: -20px;
+  right: var(--space-2);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  animation: pulse 1.5s infinite;
+}

@@ -1,0 +1,67 @@
+.container { max-width: 800px; }
+.stepHeader { margin-bottom: var(--space-8); }
+.title { font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: var(--space-2); }
+.sub { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+.uploadCard { padding: var(--space-8); }
+.uploads { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+
+.dropzone {
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.dropzone:hover { border-color: var(--accent-primary); background: var(--accent-glow); }
+.dropzoneReady { border-color: var(--confidence-good); border-style: solid; background: rgba(52,211,153,0.05); }
+.dropIcon { font-size: 32px; margin-bottom: var(--space-3); }
+.dropTitle { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-1); }
+.dropSub { font-size: 12px; color: var(--text-muted); }
+
+/* Review */
+.reviewContainer { display: flex; flex-direction: column; gap: var(--space-4); }
+.reviewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+
+.countryHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+.countryList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 48px;
+  margin-bottom: var(--space-4);
+}
+.countryTag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  padding: 3px 10px 3px 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  animation: fadeIn 0.15s ease;
+}
+.countryRemove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.countryRemove:hover { color: var(--accent-danger); }
+.addCountry { display: flex; gap: var(--space-2); }
+
+.confirmRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-4);
+}

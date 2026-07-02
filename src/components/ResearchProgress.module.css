@@ -1,0 +1,59 @@
+.container { max-width: 900px; }
+.header { margin-bottom: var(--space-6); }
+.title { font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: var(--space-2); }
+.sub { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+/* Progress Card */
+.progressCard { margin-bottom: var(--space-6); }
+.progressStats { display: flex; gap: var(--space-8); margin-bottom: var(--space-4); }
+.stat { display: flex; flex-direction: column; gap: 2px; }
+.statNum { font-size: 28px; font-weight: 700; line-height: 1; }
+.statLabel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-input);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--space-2);
+}
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+  border-radius: var(--radius-full);
+  min-width: 4px;
+}
+.progressPct { font-size: 12px; color: var(--text-muted); }
+.doneMsg { margin-top: var(--space-4); color: var(--confidence-good); font-weight: 600; font-size: 14px; }
+
+/* Country Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-2);
+}
+.countryItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  transition: border-color 0.2s;
+}
+.status_researching { border-color: rgba(108,142,245,0.3); background: rgba(108,142,245,0.04); }
+.status_done { border-color: rgba(52,211,153,0.2); }
+.status_failed { border-color: rgba(248,113,113,0.25); }
+
+.statusIcon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+.status_queued .statusIcon { color: var(--text-muted); }
+.status_researching .statusIcon { color: var(--accent-primary); }
+.status_done .statusIcon { color: var(--confidence-good); }
+.status_failed .statusIcon { color: var(--accent-danger); }
+
+.countryInfo { min-width: 0; }
+.countryName { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.countryStage { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.countryError { font-size: 11px; color: var(--accent-danger); }
