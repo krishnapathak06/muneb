@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     let contextPrompt = '';
     if (bgText) {
-      contextPrompt = `To make the proposed indicators highly tailored to this specific committee, here is the background guide text for context:\n---\n${bgText.slice(0, 15000)}\n---\n\n`;
+      contextPrompt = `To make the proposed indicators highly tailored to this specific committee, here is the background guide text for context:\n---\n${bgText}\n---\n\n`;
     }
 
     // 1. Generate for Main Agenda
