@@ -160,6 +160,29 @@ interface Props {
 
 // ─── Sub-components (defined at module level for stable identity) ─────────────
 
+// ─── Inline Premium SVG Icons ────────────────────────────────────────────────
+const IconAttendance = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+);
+const IconGsl = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+);
+const IconModCoc = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+);
+const IconUnmod = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+);
+const IconBolt = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+);
+const IconClose = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+);
+const IconAudio = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+);
+
 function DelegateSelect({
   label,
   countries,
@@ -217,7 +240,7 @@ function DelegateSelect({
               setSearch('');
             }}
           >
-            ×
+            <IconClose />
           </button>
         </div>
       ) : (
@@ -333,7 +356,7 @@ function CompletedActivityCard({
       <div className={`${styles.activityCard} ${styles.activityCardAttendance} ${styles.activityCardCompleted}`}>
         <div className={styles.activityCardHeader}>
           <span className={`${styles.activityBadge} ${styles.badgeAttendance}`}>
-            📋 Attendance Roll #{att.attendanceIndex}
+            <IconAttendance /> Attendance Roll #{att.attendanceIndex}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
         </div>
@@ -349,13 +372,15 @@ function CompletedActivityCard({
     return (
       <div className={`${styles.activityCard} ${styles.activityCardGSL} ${styles.activityCardCompleted}`}>
         <div className={styles.activityCardHeader}>
-          <span className={`${styles.activityBadge} ${styles.badgeGSL}`}>🎙 GSL</span>
+          <span className={`${styles.activityBadge} ${styles.badgeGSL}`}>
+            <IconGsl /> GSL
+          </span>
           <span
             className={`${styles.outcomeBadge} ${
               gsl.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed
             }`}
           >
-            {gsl.outcome === 'passed' ? '✓ Passed' : '✗ Failed'}
+            {gsl.outcome === 'passed' ? 'Passed' : 'Failed'}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
         </div>
@@ -374,13 +399,15 @@ function CompletedActivityCard({
     return (
       <div className={`${styles.activityCard} ${styles.activityCardModCoc} ${styles.activityCardCompleted}`}>
         <div className={styles.activityCardHeader}>
-          <span className={`${styles.activityBadge} ${styles.badgeModCoc}`}>🗣 Mod Coc</span>
+          <span className={`${styles.activityBadge} ${styles.badgeModCoc}`}>
+            <IconModCoc /> Mod Coc
+          </span>
           <span
             className={`${styles.outcomeBadge} ${
               mc.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed
             }`}
           >
-            {mc.outcome === 'passed' ? '✓ Passed' : '✗ Failed'}
+            {mc.outcome === 'passed' ? 'Passed' : 'Failed'}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
         </div>
@@ -403,14 +430,16 @@ function CompletedActivityCard({
     return (
       <div className={`${styles.activityCard} ${styles.activityCardUnmod} ${styles.activityCardCompleted}`}>
         <div className={styles.activityCardHeader}>
-          <span className={`${styles.activityBadge} ${styles.badgeUnmod}`}>☕ Unmod Coc</span>
+          <span className={`${styles.activityBadge} ${styles.badgeUnmod}`}>
+            <IconUnmod /> Unmod Coc
+          </span>
           {uc.outcome && (
             <span
               className={`${styles.outcomeBadge} ${
                 uc.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed
               }`}
             >
-              {uc.outcome === 'passed' ? '✓ Passed' : '✗ Failed'}
+              {uc.outcome === 'passed' ? 'Passed' : 'Failed'}
             </span>
           )}
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
@@ -998,20 +1027,24 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
     activity: GSLActivity | ModCocActivity,
     cardClass: string,
     badgeClass: string,
-    title: string
+    title: string,
+    IconComponent: React.ComponentType
   ) {
     return (
       <div key={activity.id} className={`${styles.activityCard} ${cardClass}`}>
         <div className={styles.activityCardHeader}>
-          <span className={`${styles.activityBadge} ${badgeClass}`}>{title}</span>
+          <span className={`${styles.activityBadge} ${badgeClass}`}>
+            <IconComponent /> {title}
+          </span>
           <div className={styles.activityHeaderRight}>
             <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
             <button
+              type="button"
               className={`btn btn-secondary btn-sm ${styles.closeActivityBtn}`}
               onClick={handleCloseActivity}
               title="Close this activity and return to the timeline"
             >
-              ✓ Close Activity
+              Close Activity
             </button>
           </div>
         </div>
@@ -1027,7 +1060,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                 <span className={styles.prevSpeakerTime}>[+{formatTime(sp.speechStartOffset)}]</span>
                 {sp.points.length > 0 && (
                   <span className={styles.prevSpeakerPointsTag}>
-                    {sp.points.length}pt
+                    {sp.points.length} pt
                   </span>
                 )}
               </div>
@@ -1046,11 +1079,12 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                 onChange={setCurrentSpeakerCountryId}
               />
               <button
+                type="button"
                 className="btn btn-primary"
                 disabled={!currentSpeakerCountryId}
                 onClick={() => handleStartSpeech(activity)}
               >
-                ▶ Start Speech
+                Start Speech
               </button>
             </div>
           ) : (
@@ -1069,20 +1103,22 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                 <div className={styles.speakerTimerName}>{getName(currentSpeakerCountryId)}</div>
                 <div className={styles.speakerTimerToggle}>
                   <button
+                    type="button"
                     className={`${styles.timerModeBtn} ${
                       speakerTimerMode === 'stopwatch' ? styles.timerModeBtnActive : ''
                     }`}
                     onClick={() => setSpeakerTimerMode('stopwatch')}
                   >
-                    ⏱ Stopwatch
+                    Stopwatch
                   </button>
                   <button
+                    type="button"
                     className={`${styles.timerModeBtn} ${
                       speakerTimerMode === 'countdown' ? styles.timerModeBtnActive : ''
                     }`}
                     onClick={() => setSpeakerTimerMode('countdown')}
                   >
-                    ⏳ Countdown
+                    Countdown
                   </button>
                 </div>
               </div>
@@ -1105,7 +1141,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                       <span className={styles.pointRaisedBy}>↑ {getName(pt.raisedBy)}</span>
                       <span className={styles.pointContent}>{pt.content}</span>
                       {pt.answer && (
-                        <span className={styles.pointAnswer}>A: {pt.answer}</span>
+                        <span className={styles.pointAnswer}>Answer: {pt.answer}</span>
                       )}
                     </div>
                   ))}
@@ -1122,6 +1158,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                   />
                   <div className={styles.pointFormActions}>
                     <button
+                      type="button"
                       className="btn btn-ghost btn-sm"
                       onClick={() => {
                         setAddingPointToCurrentSpeaker(false);
@@ -1131,6 +1168,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                       Cancel
                     </button>
                     <button
+                      type="button"
                       className="btn btn-secondary btn-sm"
                       disabled={
                         !currentPointDraft.type ||
@@ -1145,6 +1183,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                 </div>
               ) : (
                 <button
+                  type="button"
                   className={styles.addPointBtn}
                   onClick={() => setAddingPointToCurrentSpeaker(true)}
                 >
@@ -1153,7 +1192,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
               )}
 
               <div className={styles.speakerActions}>
-                <button className="btn btn-secondary" onClick={handleAddNextSpeaker}>
+                <button type="button" className="btn btn-secondary" onClick={handleAddNextSpeaker}>
                   Add Next Speaker
                 </button>
               </div>
@@ -1176,7 +1215,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         >
           <div className={styles.activityCardHeader}>
             <span className={`${styles.activityBadge} ${styles.badgeAttendance}`}>
-              📋 Attendance Roll #{att.attendanceIndex}
+              <IconAttendance /> Attendance Roll #{att.attendanceIndex}
             </span>
             <span className={styles.activityTimestamp}>
               [+{formatTime(activity.startedAtOffset)}]
@@ -1194,6 +1233,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                       ['present', 'present_and_voting', 'absent'] as const
                     ).map((s) => (
                       <button
+                        type="button"
                         key={s}
                         className={`${styles.attendanceBtn} ${
                           status === s ? styles.attendanceBtnActive : ''
@@ -1209,6 +1249,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
             })}
           </div>
           <button
+            type="button"
             className="btn btn-primary"
             style={{ marginTop: 16 }}
             onClick={completeAttendance}
@@ -1226,7 +1267,9 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         return (
           <div key={activity.id} className={`${styles.activityCard} ${styles.activityCardGSL}`}>
             <div className={styles.activityCardHeader}>
-              <span className={`${styles.activityBadge} ${styles.badgeGSL}`}>🎙 GSL — Setup</span>
+              <span className={`${styles.activityBadge} ${styles.badgeGSL}`}>
+                <IconGsl /> GSL Setup
+              </span>
               <span className={styles.activityTimestamp}>
                 [+{formatTime(activity.startedAtOffset)}]
               </span>
@@ -1268,18 +1311,20 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
               </div>
               <div className={styles.voteRow}>
                 <button
+                  type="button"
                   className="btn btn-danger"
                   disabled={!gsl.raisedBy}
                   onClick={failActivity}
                 >
-                  ✗ Failed
+                  Failed
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary"
                   disabled={!gsl.raisedBy}
                   onClick={passActivity}
                 >
-                  ✓ Passed → Open Speaker Phase
+                  Passed → Open Speaker Phase
                 </button>
               </div>
             </div>
@@ -1291,7 +1336,8 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         gsl,
         styles.activityCardGSL,
         styles.badgeGSL,
-        `🎙 GSL — Active`
+        `GSL — Active`,
+        IconGsl
       );
     }
 
@@ -1306,7 +1352,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
           >
             <div className={styles.activityCardHeader}>
               <span className={`${styles.activityBadge} ${styles.badgeModCoc}`}>
-                🗣 Mod Coc — Setup
+                <IconModCoc /> Mod Coc Setup
               </span>
               <span className={styles.activityTimestamp}>
                 [+{formatTime(activity.startedAtOffset)}]
@@ -1358,18 +1404,20 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
               </div>
               <div className={styles.voteRow}>
                 <button
+                  type="button"
                   className="btn btn-danger"
                   disabled={!mc.raisedBy || !mc.topic}
                   onClick={failActivity}
                 >
-                  ✗ Failed
+                  Failed
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary"
                   disabled={!mc.raisedBy || !mc.topic}
                   onClick={passActivity}
                 >
-                  ✓ Passed → Open Speaker Phase
+                  Passed → Open Speaker Phase
                 </button>
               </div>
             </div>
@@ -1381,7 +1429,8 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         mc,
         styles.activityCardModCoc,
         styles.badgeModCoc,
-        `🗣 Mod Coc — ${mc.topic || 'Active'}`
+        `Mod Coc — ${mc.topic || 'Active'}`,
+        IconModCoc
       );
     }
 
@@ -1393,7 +1442,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
           <div key={activity.id} className={`${styles.activityCard} ${styles.activityCardUnmod}`}>
             <div className={styles.activityCardHeader}>
               <span className={`${styles.activityBadge} ${styles.badgeUnmod}`}>
-                ☕ Unmod Coc — Setup
+                <IconUnmod /> Unmod Coc Setup
               </span>
               <span className={styles.activityTimestamp}>
                 [+{formatTime(activity.startedAtOffset)}]
@@ -1432,7 +1481,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                   disabled={!uc.raisedBy}
                   onClick={failActivity}
                 >
-                  ✗ Failed
+                  Failed
                 </button>
                 <button
                   type="button"
@@ -1440,7 +1489,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                   disabled={!uc.raisedBy}
                   onClick={passActivity}
                 >
-                  ✓ Passed → Open Unmod Caucus
+                  Passed → Open Unmod Caucus
                 </button>
               </div>
             </div>
@@ -1453,7 +1502,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         <div key={activity.id} className={`${styles.activityCard} ${styles.activityCardUnmod}`}>
           <div className={styles.activityCardHeader}>
             <span className={`${styles.activityBadge} ${styles.badgeUnmod}`}>
-              ☕ Unmod Coc — Active
+              <IconUnmod /> Unmod Coc Active
             </span>
             <div className={styles.activityHeaderRight}>
               <span className={styles.activityTimestamp}>
@@ -1465,7 +1514,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                 onClick={handleCloseActivity}
                 title="Close this unmoderated caucus and return to the timeline"
               >
-                ✓ Close Caucus
+                Close Caucus
               </button>
             </div>
           </div>
@@ -1484,7 +1533,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                   }`}
                   onClick={() => setSpeakerTimerMode('stopwatch')}
                 >
-                  ⏱ Stopwatch
+                  Stopwatch
                 </button>
                 <button
                   type="button"
@@ -1493,7 +1542,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                   }`}
                   onClick={() => setSpeakerTimerMode('countdown')}
                 >
-                  ⏳ Countdown
+                  Countdown
                 </button>
               </div>
               {!speakerTimerRunning && (
@@ -1503,7 +1552,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                   style={{ marginTop: 12 }}
                   onClick={() => startSpeakerTimer(uc.durationSeconds)}
                 >
-                  ▶ Start / Resume Timer
+                  Start / Resume Timer
                 </button>
               )}
             </div>
@@ -1523,7 +1572,9 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
       {audioError && (
         <div className={styles.audioErrorOverlay}>
           <div className={styles.audioErrorCard}>
-            <div className={styles.audioErrorIcon}>⚠</div>
+            <div className={styles.audioErrorIcon}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+            </div>
             <h2 className={styles.audioErrorTitle}>Audio Recording Error</h2>
             <p className={styles.audioErrorDesc}>
               The committee session audio has stopped. Your session timer and all activity data
@@ -1531,10 +1582,11 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
             </p>
             <code className={styles.audioErrorMsg}>{audioError}</code>
             <div className={styles.audioErrorActions}>
-              <button className="btn btn-ghost" onClick={() => setAudioError(null)}>
+              <button type="button" className="btn btn-ghost" onClick={() => setAudioError(null)}>
                 Dismiss
               </button>
               <button
+                type="button"
                 className="btn btn-primary"
                 onClick={() => {
                   setAudioError(null);
@@ -1560,7 +1612,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                 ? 'Session Active'
                 : sessionData.sessionStart
                 ? 'Session Paused'
-                : 'No Session'}
+                : 'No Session Started'}
             </span>
           </div>
           {isMeetingActive && (
@@ -1569,8 +1621,8 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         </div>
         <div className={styles.sessionHeaderRight}>
           {sessionData.activities.length > 0 && (
-            <button className="btn btn-ghost btn-sm" onClick={handleExport}>
-              ↓ Export .txt
+            <button type="button" className="btn btn-secondary btn-sm" onClick={handleExport}>
+              Export Session (.txt)
             </button>
           )}
           {!isMeetingActive ? (
@@ -1587,13 +1639,13 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                   </option>
                 ))}
               </select>
-              <button className="btn btn-primary" onClick={startMeeting}>
-                🔴 Begin Committee Session
+              <button type="button" className="btn btn-primary" onClick={startMeeting}>
+                Begin Committee Session
               </button>
             </div>
           ) : (
-            <button className="btn btn-danger" onClick={stopMeeting}>
-              ⏹ End Session
+            <button type="button" className="btn btn-danger" onClick={stopMeeting}>
+              End Session
             </button>
           )}
         </div>
@@ -1613,29 +1665,33 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
 
           {canAddActivity && (
             <button
+              type="button"
               className={styles.addActivityBtn}
               onClick={() => setAddActivityOpen(true)}
             >
-              <span className={styles.addActivityPlus}>+</span>
-              Add Activity
+              <span className={styles.addActivityPlus}>+</span> Add Activity
             </button>
           )}
 
           {!isMeetingActive && sessionData.activities.length === 0 && (
             <div className={styles.emptyTimeline}>
-              <div className={styles.emptyTimelineIcon}>🏛</div>
-              <p>No committee session started yet.</p>
+              <div className={styles.emptyTimelineIcon}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17h6"/><path d="M9 12h6"/><path d="M9 7h6"/></svg>
+              </div>
+              <p className={styles.emptyTimelineText}>No committee session active</p>
               <p className={styles.emptyTimelineSub}>
-                Press &ldquo;Begin Committee Session&rdquo; to start recording and tracking
-                activities.
+                Begin a committee session to start tracking attendance, GSL, moderated and unmoderated caucuses.
               </p>
             </div>
           )}
 
           {isMeetingActive && sessionData.activities.length === 0 && !currentActivity && (
             <div className={styles.emptyTimeline}>
-              <div className={styles.emptyTimelineIcon}>📋</div>
-              <p>Session is running. Add your first activity.</p>
+              <div className={styles.emptyTimelineIcon}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              </div>
+              <p className={styles.emptyTimelineText}>Session is running</p>
+              <p className={styles.emptyTimelineSub}>Add your first activity to start logging records.</p>
             </div>
           )}
         </div>
@@ -1644,14 +1700,17 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         <div className={styles.audioCol}>
           {totalPlaybackDuration > 0 ? (
             <div className={`card ${styles.playbackCard}`}>
-              <h4 className={styles.audioColTitle}>🎧 Session Recording</h4>
+              <h4 className={styles.audioColTitle}>
+                <IconAudio /> Session Recording
+              </h4>
               <div className={styles.playerTop}>
                 <button
+                  type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={togglePlayPause}
                   style={{ width: 80 }}
                 >
-                  {isPlaying ? '⏸ Pause' : '▶ Play'}
+                  {isPlaying ? 'Pause' : 'Play'}
                 </button>
                 <div className={styles.playerTimeline}>
                   <span className={styles.timeLabel}>{formatTime(currentTime)}</span>
@@ -1668,18 +1727,19 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                 </div>
               </div>
               <div className={styles.playerSpeedControl}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginRight: 12, fontWeight: 500 }}>
                   Speed
                 </span>
                 {[1, 1.25, 1.5, 2].map((sp) => (
                   <button
                     key={sp}
+                    type="button"
                     className={`tab ${playbackSpeed === sp ? 'active' : ''}`}
                     onClick={() => {
                       setPlaybackSpeed(sp);
                       if (audioRef.current) audioRef.current.playbackRate = sp;
                     }}
-                    style={{ padding: '2px 8px', fontSize: 11 }}
+                    style={{ padding: '2px 10px', fontSize: 11 }}
                   >
                     {sp}x
                   </button>
@@ -1688,12 +1748,18 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
             </div>
           ) : (
             isMeetingActive && (
-              <div className={`card ${styles.recordingIndicatorCard}`}>
-                <div className={styles.recordingLivePulse} />
-                <span className={styles.recordingLiveText}>Recording in progress…</span>
+              <div className={styles.recordingIndicatorCard}>
+                <div className={styles.visualizerWaveform}>
+                  <span className={styles.visualizerBar} />
+                  <span className={styles.visualizerBar} />
+                  <span className={styles.visualizerBar} />
+                  <span className={styles.visualizerBar} />
+                  <span className={styles.visualizerBar} />
+                  <span className={styles.visualizerBar} />
+                </div>
+                <span className={styles.recordingLiveText}>Recording session audio…</span>
                 <span className={styles.recordingLiveSub}>
-                  {manifest.segments.length} segment
-                  {manifest.segments.length !== 1 ? 's' : ''} saved
+                  {manifest.segments.length} segment{manifest.segments.length !== 1 ? 's' : ''} saved
                 </span>
               </div>
             )
@@ -1701,8 +1767,10 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
 
           {/* Global points log */}
           {sessionData.globalPoints.length > 0 && (
-            <div className={`card ${styles.globalPointsLog}`}>
-              <h4 className={styles.audioColTitle}>⚡ Global Points</h4>
+            <div className={styles.globalPointsLog}>
+              <h4 className={styles.audioColTitle}>
+                <IconBolt /> Global Points Feed
+              </h4>
               {sessionData.globalPoints.map((pt) => (
                 <div key={pt.id} className={styles.globalPointLogRow}>
                   <span className={styles.globalPointTime}>[+{formatTime(pt.raisedAtOffset)}]</span>
@@ -1726,27 +1794,29 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
             <div className={styles.activityTypeGrid}>
               {(
                 [
-                  { type: 'attendance', icon: '📋', label: 'Attendance', sub: 'Roll call' },
-                  { type: 'gsl', icon: '🎙', label: 'GSL', sub: 'General Speakers List' },
-                  { type: 'mod_coc', icon: '🗣', label: 'Mod Coc', sub: 'Moderated Caucus' },
-                  { type: 'unmod_coc', icon: '☕', label: 'Unmod Coc', sub: 'Unmoderated Caucus' },
+                  { type: 'attendance', Icon: IconAttendance, label: 'Attendance', sub: 'Roll call' },
+                  { type: 'gsl', Icon: IconGsl, label: 'GSL', sub: 'General Speakers List' },
+                  { type: 'mod_coc', Icon: IconModCoc, label: 'Mod Coc', sub: 'Moderated Caucus' },
+                  { type: 'unmod_coc', Icon: IconUnmod, label: 'Unmod Coc', sub: 'Unmoderated Caucus' },
                 ] as const
               ).map((opt) => (
                 <button
+                  type="button"
                   key={opt.type}
                   className={styles.activityTypeCard}
                   onClick={() => addActivity(opt.type)}
                 >
-                  <span className={styles.activityTypeIcon}>{opt.icon}</span>
+                  <span className={styles.activityTypeIcon}><opt.Icon /></span>
                   <span className={styles.activityTypeLabel}>{opt.label}</span>
                   <span className={styles.activityTypeSub}>{opt.sub}</span>
                 </button>
               ))}
             </div>
             <button
+              type="button"
               className="btn btn-ghost btn-sm"
               onClick={() => setAddActivityOpen(false)}
-              style={{ marginTop: 16 }}
+              style={{ marginTop: 20 }}
             >
               Cancel
             </button>
@@ -1757,11 +1827,12 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
       {/* ── Global Point FAB ─────────────────────────────────────────────── */}
       {isMeetingActive && (
         <button
+          type="button"
           className={styles.globalPointFAB}
           onClick={() => setGlobalPointOpen(true)}
           title="Raise a point at this timestamp"
         >
-          <span className={styles.fabIcon}>⚡</span>
+          <span className={styles.fabIcon}><IconBolt /></span>
         </button>
       )}
 
@@ -1773,14 +1844,14 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className={styles.modalTitle}>
-              ⚡ Add Point{' '}
+              Add Point{' '}
               <span className={styles.globalPointTimestamp}>
                 at [+{formatTime(recordingSeconds)}]
               </span>
             </h3>
             {currentActivity && (
               <p className={styles.modalSubtitle}>
-                Active:{' '}
+                Active activity:{' '}
                 {currentActivity.type === 'attendance'
                   ? 'Attendance Roll'
                   : currentActivity.type === 'gsl'
@@ -1797,12 +1868,14 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
             />
             <div className={styles.modalActions}>
               <button
+                type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={() => setGlobalPointOpen(false)}
               >
                 Cancel
               </button>
               <button
+                type="button"
                 className="btn btn-primary"
                 disabled={
                   !globalPointDraft.type ||
