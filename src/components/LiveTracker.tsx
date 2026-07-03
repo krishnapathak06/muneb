@@ -96,7 +96,9 @@ export interface ModCocActivity extends BaseActivity {
 
 export interface UnmodCocActivity extends BaseActivity {
   type: 'unmod_coc';
+  raisedBy: string;
   durationSeconds: number;
+  outcome: 'passed' | 'failed' | null;
 }
 
 export type ActivityRecord =
@@ -170,10 +172,36 @@ function DelegateSelect({
   onChange: (id: string) => void;
 }) {
   const [search, setSearch] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
   const selected = countries.find((c) => c.id === value);
   const filtered = search
     ? countries.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     : countries;
+
+  // Reset activeIndex when filter changes
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [search]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const visibleOptions = filtered.slice(0, 10);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((prev) => Math.min(visibleOptions.length - 1, prev + 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((prev) => Math.max(0, prev - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (visibleOptions[activeIndex]) {
+        onChange(visibleOptions[activeIndex].id);
+        setSearch('');
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setSearch('');
+    }
+  };
 
   return (
     <div className={styles.delegateSelectWrapper}>
@@ -182,6 +210,7 @@ function DelegateSelect({
         <div className={styles.delegateSelected}>
           <span className={styles.delegateSelectedName}>{selected.name}</span>
           <button
+            type="button"
             className="btn btn-ghost btn-sm"
             onClick={() => {
               onChange('');
@@ -195,16 +224,20 @@ function DelegateSelect({
         <div className={styles.delegateSearchBox}>
           <input
             className="input"
-            placeholder="Search delegates…"
+            placeholder="Search delegates (use ↑↓ and Enter)…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
           {search && (
             <div className={styles.delegateDropdown}>
-              {filtered.slice(0, 10).map((c) => (
+              {filtered.slice(0, 10).map((c, idx) => (
                 <button
                   key={c.id}
-                  className={styles.delegateOption}
+                  type="button"
+                  className={`${styles.delegateOption} ${
+                    idx === activeIndex ? styles.delegateOptionActive : ''
+                  }`}
                   onClick={() => {
                     onChange(c.id);
                     setSearch('');
@@ -371,9 +404,20 @@ function CompletedActivityCard({
       <div className={`${styles.activityCard} ${styles.activityCardUnmod} ${styles.activityCardCompleted}`}>
         <div className={styles.activityCardHeader}>
           <span className={`${styles.activityBadge} ${styles.badgeUnmod}`}>☕ Unmod Coc</span>
+          {uc.outcome && (
+            <span
+              className={`${styles.outcomeBadge} ${
+                uc.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed
+              }`}
+            >
+              {uc.outcome === 'passed' ? '✓ Passed' : '✗ Failed'}
+            </span>
+          )}
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
         </div>
-        <p className={styles.completedSummary}>{label}</p>
+        <p className={styles.completedSummary}>
+          Raised by {uc.raisedBy ? getName(uc.raisedBy) : 'Unknown'} · Duration: {label}
+        </p>
       </div>
     );
   }
@@ -441,9 +485,19 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
     loadSession();
     audioRef.current = new Audio();
     audioRef.current.addEventListener('ended', handleAudioEnded);
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setAddActivityOpen(false);
+        setGlobalPointOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+
     return () => {
       cleanupRecording();
       stopSpeakerTimer();
+      window.removeEventListener('keydown', handleGlobalKeyDown);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.removeEventListener('ended', handleAudioEnded);
@@ -781,7 +835,9 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         ...base,
         type: 'unmod_coc',
         status: 'setup',
+        raisedBy: '',
         durationSeconds: 600,
+        outcome: null,
       };
     }
 
@@ -823,6 +879,11 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
   function passActivity() {
     mutateCurrent({ outcome: 'passed', status: 'active' } as any);
     resetSpeakerState();
+    if (currentActivity?.type === 'unmod_coc') {
+      const uc = currentActivity as UnmodCocActivity;
+      startSpeakerTimer(uc.durationSeconds);
+      setSpeakerTimerMode('countdown');
+    }
   }
 
   function failActivity() {
@@ -1326,36 +1387,126 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
 
     if (activity.type === 'unmod_coc') {
       const uc = activity as UnmodCocActivity;
+
+      if (uc.status === 'setup') {
+        return (
+          <div key={activity.id} className={`${styles.activityCard} ${styles.activityCardUnmod}`}>
+            <div className={styles.activityCardHeader}>
+              <span className={`${styles.activityBadge} ${styles.badgeUnmod}`}>
+                ☕ Unmod Coc — Setup
+              </span>
+              <span className={styles.activityTimestamp}>
+                [+{formatTime(activity.startedAtOffset)}]
+              </span>
+            </div>
+            <div className={styles.setupForm}>
+              <DelegateSelect
+                label="Raised By"
+                countries={countries}
+                value={uc.raisedBy}
+                onChange={(v) => mutateCurrent({ raisedBy: v } as any)}
+              />
+              <div className={styles.formRow}>
+                <label className="label" style={{ marginBottom: 8 }}>
+                  Duration
+                </label>
+                <div className={styles.durationPills}>
+                  {UNMOD_DURATIONS.map((d, i) => (
+                    <button
+                      key={d}
+                      type="button"
+                      className={`${styles.durationPill} ${
+                        uc.durationSeconds === d ? styles.durationPillActive : ''
+                      }`}
+                      onClick={() => mutateCurrent({ durationSeconds: d } as any)}
+                    >
+                      {UNMOD_LABELS[i]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.voteRow}>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  disabled={!uc.raisedBy}
+                  onClick={failActivity}
+                >
+                  ✗ Failed
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!uc.raisedBy}
+                  onClick={passActivity}
+                >
+                  ✓ Passed → Open Unmod Caucus
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Active phase with timer display
       return (
         <div key={activity.id} className={`${styles.activityCard} ${styles.activityCardUnmod}`}>
           <div className={styles.activityCardHeader}>
             <span className={`${styles.activityBadge} ${styles.badgeUnmod}`}>
-              ☕ Unmod Coc — Setup
+              ☕ Unmod Coc — Active
             </span>
-            <span className={styles.activityTimestamp}>
-              [+{formatTime(activity.startedAtOffset)}]
-            </span>
-          </div>
-          <div className={styles.setupForm}>
-            <label className="label" style={{ marginBottom: 8 }}>
-              Duration
-            </label>
-            <div className={styles.durationPills}>
-              {UNMOD_DURATIONS.map((d, i) => (
-                <button
-                  key={d}
-                  className={`${styles.durationPill} ${
-                    uc.durationSeconds === d ? styles.durationPillActive : ''
-                  }`}
-                  onClick={() => mutateCurrent({ durationSeconds: d } as any)}
-                >
-                  {UNMOD_LABELS[i]}
-                </button>
-              ))}
+            <div className={styles.activityHeaderRight}>
+              <span className={styles.activityTimestamp}>
+                [+{formatTime(activity.startedAtOffset)}]
+              </span>
+              <button
+                type="button"
+                className={`btn btn-secondary btn-sm ${styles.closeActivityBtn}`}
+                onClick={handleCloseActivity}
+                title="Close this unmoderated caucus and return to the timeline"
+              >
+                ✓ Close Caucus
+              </button>
             </div>
-            <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={completeUnmod}>
-              Confirm
-            </button>
+          </div>
+
+          <div className={styles.speakerEntry}>
+            <div className={styles.speakerTimerDisplay}>
+              <div className={styles.speakerTimerTime}>{speakerDisplayTime}</div>
+              <div className={styles.speakerTimerName}>
+                Remaining Time (Raised by {getName(uc.raisedBy)})
+              </div>
+              <div className={styles.speakerTimerToggle}>
+                <button
+                  type="button"
+                  className={`${styles.timerModeBtn} ${
+                    speakerTimerMode === 'stopwatch' ? styles.timerModeBtnActive : ''
+                  }`}
+                  onClick={() => setSpeakerTimerMode('stopwatch')}
+                >
+                  ⏱ Stopwatch
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.timerModeBtn} ${
+                    speakerTimerMode === 'countdown' ? styles.timerModeBtnActive : ''
+                  }`}
+                  onClick={() => setSpeakerTimerMode('countdown')}
+                >
+                  ⏳ Countdown
+                </button>
+              </div>
+              {!speakerTimerRunning && (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ marginTop: 12 }}
+                  onClick={() => startSpeakerTimer(uc.durationSeconds)}
+                >
+                  ▶ Start / Resume Timer
+                </button>
+              )}
+            </div>
           </div>
         </div>
       );

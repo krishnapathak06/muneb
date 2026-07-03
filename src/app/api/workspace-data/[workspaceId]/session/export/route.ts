@@ -165,10 +165,12 @@ export async function GET(
     }
 
     if (act.type === 'unmod_coc') {
+      const outcomeStr = act.outcome === 'passed' ? '✓ PASSED' : act.outcome === 'failed' ? '✗ FAILED' : 'PENDING';
       const dur = act.durationSeconds ?? 0;
       const durLabel = dur >= 3600 ? `${Math.floor(dur / 3600)}h` : `${Math.floor(dur / 60)}m`;
-      lines.push(`${ts} ── UNMODERATED CAUCUS ${'─'.repeat(37)}`);
-      lines.push(`  Duration: ${durLabel}`);
+      lines.push(`${ts} ── UNMODERATED CAUCUS — ${outcomeStr} ${'─'.repeat(25)}`);
+      if (act.raisedBy) lines.push(`  Raised by: ${getName(act.raisedBy)}`);
+      lines.push(`  Duration:  ${durLabel}`);
       lines.push('');
     }
   }

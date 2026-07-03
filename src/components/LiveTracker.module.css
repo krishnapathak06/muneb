@@ -992,8 +992,10 @@
   transition: background 0.1s;
 }
 
-.delegateOption:hover {
-  background: var(--bg-elevated);
+.delegateOption:hover,
+.delegateOptionActive {
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--accent-primary);
 }
 
 .delegateNoResults {
