@@ -1,3 +1,5 @@
+import { chatWithRetry } from '@/lib/openrouter';
+
 // Known country names for heuristic matching
 export const KNOWN_COUNTRIES = [
   'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda',
@@ -30,11 +32,7 @@ export const KNOWN_COUNTRIES = [
   'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey',
   'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates',
   'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu',
-  'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe',
-  // Common abbreviations / alternates used in MUN
-  'USA', 'UK', 'UAE', 'DRC', 'Democratic Republic of the Congo',
-  'Republic of Korea', 'People\'s Republic of China', 'Russian Federation',
-  'Islamic Republic of Iran', 'Bolivarian Republic of Venezuela',
+  'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
 ];
 
 export interface ParsedIntake {
@@ -46,8 +44,77 @@ export interface ParsedIntake {
   confidenceNotes: string[];
 }
 
+export function getCanonicalCountry(name: string): string {
+  const cleaned = name.trim().toLowerCase().replace(/[\s,()\-._]+/g, ' ').trim();
+  
+  const mapping: Record<string, string> = {
+    'usa': 'United States',
+    'united states of america': 'United States',
+    'united states': 'United States',
+    'uk': 'United Kingdom',
+    'great britain': 'United Kingdom',
+    'united kingdom': 'United Kingdom',
+    'uae': 'United Arab Emirates',
+    'united arab emirates': 'United Arab Emirates',
+    'drc': 'Democratic Republic of the Congo',
+    'democratic republic of the congo': 'Democratic Republic of the Congo',
+    'congo democratic republic of the': 'Democratic Republic of the Congo',
+    'republic of the congo': 'Congo',
+    'congo': 'Congo',
+    'republic of korea': 'South Korea',
+    'south korea': 'South Korea',
+    'korea republic of': 'South Korea',
+    'korea rep': 'South Korea',
+    'north korea': 'North Korea',
+    'democratic people\'s republic of korea': 'North Korea',
+    'korea democratic people\'s republic of': 'North Korea',
+    'dprk': 'North Korea',
+    'peoples republic of china': 'China',
+    'prc': 'China',
+    'china': 'China',
+    'russian federation': 'Russia',
+    'russia': 'Russia',
+    'islamic republic of iran': 'Iran',
+    'iran': 'Iran',
+    'iran islamic republic of': 'Iran',
+    'bolivarian republic of venezuela': 'Venezuela',
+    'venezuela': 'Venezuela',
+    'venezuela bolivarian republic of': 'Venezuela',
+    'syrian arab republic': 'Syria',
+    'syria': 'Syria',
+    'viet nam': 'Vietnam',
+    'vietnam': 'Vietnam',
+    'bolivia plurinational state of': 'Bolivia',
+    'bolivia': 'Bolivia',
+    'lao peoples democratic republic': 'Laos',
+    'laos': 'Laos',
+  };
+
+  if (mapping[cleaned]) {
+    return mapping[cleaned];
+  }
+
+  // Check if any mapping key matches as a whole word
+  for (const [key, canonical] of Object.entries(mapping)) {
+    const regex = new RegExp(`\\b${key}\\b`, 'i');
+    if (regex.test(cleaned)) {
+      return canonical;
+    }
+  }
+
+  // Check if any of KNOWN_COUNTRIES matches or is contained
+  for (const country of KNOWN_COUNTRIES) {
+    const countryLower = country.toLowerCase();
+    const regex = new RegExp(`\\b${countryLower}\\b`, 'i');
+    if (regex.test(cleaned)) {
+      return country;
+    }
+  }
+
+  return '';
+}
+
 export async function parsePdf(buffer: Buffer): Promise<{ text: string; pages: number }> {
-  // Dynamic import to keep server-side only
   const pdfParse = (await import('pdf-parse')).default;
   const data = await pdfParse(buffer);
   return { text: data.text, pages: data.numpages };
@@ -87,16 +154,20 @@ export function extractIntakeData(text: string): ParsedIntake {
   // Strategy 1: line-by-line match against known country set
   for (const line of lines) {
     const cleaned = line.replace(/^[\d.\-–•*]+\s*/, '').trim();
-    if (KNOWN_COUNTRIES.includes(cleaned)) {
-      if (!foundCountries.includes(cleaned)) foundCountries.push(cleaned);
+    const canonical = getCanonicalCountry(cleaned);
+    if (canonical && KNOWN_COUNTRIES.includes(canonical)) {
+      if (!foundCountries.includes(canonical)) foundCountries.push(canonical);
     }
   }
   // Strategy 2: inline mentions
   if (foundCountries.length < 3) {
     for (const country of KNOWN_COUNTRIES) {
       const regex = new RegExp(`\\b${country}\\b`, 'i');
-      if (regex.test(text) && !foundCountries.includes(country)) {
-        foundCountries.push(country);
+      if (regex.test(text)) {
+        const canonical = getCanonicalCountry(country);
+        if (canonical && KNOWN_COUNTRIES.includes(canonical)) {
+          if (!foundCountries.includes(canonical)) foundCountries.push(canonical);
+        }
       }
     }
   }
@@ -112,6 +183,68 @@ export function extractIntakeData(text: string): ParsedIntake {
   return { committee, agenda, countries: foundCountries, rawText: text, confidence, confidenceNotes: notes };
 }
 
+export async function extractIntakeDataWithLLM(text: string): Promise<ParsedIntake> {
+  const sample = text.slice(0, 8000);
+  
+  const systemPrompt = "You are a helpful assistant that extracts MUN committee names, agendas, and participating countries from background guides. Always respond in JSON format.";
+  
+  const userPrompt = `Given the following background guide excerpt, extract:
+1. The exact name of the committee (e.g., UNEP, DISEC, UN Security Council).
+2. The main agenda topic (e.g., marine plastic pollution, outer space militarization).
+3. Any participating countries explicitly listed in this excerpt.
+
+Provide your response in this EXACT JSON structure, with no markdown formatting or extra text:
+{
+  "committee": "extracted committee name or empty string if not found",
+  "agenda": "extracted agenda topic or empty string if not found",
+  "countries": ["country1", "country2"]
+}
+
+Excerpt:
+${sample}`;
+
+  try {
+    const chatResult = await chatWithRetry([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ], { maxTokens: 1000, temperature: 0.2 });
+
+    const parsed = JSON.parse(chatResult.content);
+    
+    // Canonicalize country names
+    const canonicalCountries: string[] = [];
+    if (Array.isArray(parsed.countries)) {
+      for (const rawCountry of parsed.countries) {
+        const canonical = getCanonicalCountry(rawCountry);
+        if (canonical && KNOWN_COUNTRIES.includes(canonical) && !canonicalCountries.includes(canonical)) {
+          canonicalCountries.push(canonical);
+        }
+      }
+    }
+
+    const notes: string[] = [];
+    if (!parsed.committee) notes.push('Could not detect committee name.');
+    if (!parsed.agenda) notes.push('Could not detect agenda topic.');
+    if (canonicalCountries.length === 0) notes.push('No countries detected.');
+
+    let confidence: 'high' | 'medium' | 'low' = 'high';
+    if (notes.length >= 2) confidence = 'low';
+    else if (notes.length >= 1) confidence = 'medium';
+
+    return {
+      committee: parsed.committee || '',
+      agenda: parsed.agenda || '',
+      countries: canonicalCountries,
+      rawText: text,
+      confidence,
+      confidenceNotes: notes
+    };
+  } catch (err) {
+    console.error('[extractIntakeDataWithLLM] failed, falling back to rule-based', err);
+    return extractIntakeData(text);
+  }
+}
+
 export async function parseXlsx(buffer: Buffer): Promise<string[]> {
   const xlsxModule = await import('xlsx') as any;
   const XLSX = xlsxModule.read ? xlsxModule : (xlsxModule.default || xlsxModule);
@@ -123,8 +256,9 @@ export async function parseXlsx(buffer: Buffer): Promise<string[]> {
     for (const row of rows) {
       for (const cell of row) {
         const val = String(cell ?? '').trim();
-        if (KNOWN_COUNTRIES.includes(val) && !countries.includes(val)) {
-          countries.push(val);
+        const canonical = getCanonicalCountry(val);
+        if (canonical && KNOWN_COUNTRIES.includes(canonical) && !countries.includes(canonical)) {
+          countries.push(canonical);
         }
       }
     }

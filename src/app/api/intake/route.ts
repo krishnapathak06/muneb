@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parsePdf, extractIntakeData, parseXlsx } from '@/lib/parsers/intake-parser';
+import { parsePdf, extractIntakeData, extractIntakeDataWithLLM, parseXlsx } from '@/lib/parsers/intake-parser';
 import { updateWorkspace, writeWorkspaceFile } from '@/lib/workspace';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     // Parse Background Guide
     const bgBuffer = Buffer.from(await bgFile.arrayBuffer());
     const { text: bgText } = await parsePdf(bgBuffer);
-    const intakeData = extractIntakeData(bgText);
+    const intakeData = await extractIntakeDataWithLLM(bgText);
 
     // Save BG to intake/
     const wsDir = path.join(process.cwd(), 'workspaces', workspaceId);
