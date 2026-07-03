@@ -30,14 +30,14 @@ export default function SubIssueStep({
     extractSubIssues();
   }, []);
 
-  async function extractSubIssues() {
+  async function extractSubIssues(force = false) {
     setLoading(true);
     setError('');
     try {
       const res = await fetch('/api/sub-issues/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceId, bgText, mainAgenda, committee }),
+        body: JSON.stringify({ workspaceId, bgText, mainAgenda, committee, force }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -172,7 +172,7 @@ export default function SubIssueStep({
           {error && <div className="alert alert-danger" style={{ marginTop: 16 }}>⚠ {error}</div>}
 
           <div className={styles.approveRow}>
-            <button className="btn btn-secondary" onClick={extractSubIssues}>↺ Re-generate</button>
+            <button className="btn btn-secondary" onClick={() => extractSubIssues(true)}>↺ Re-generate</button>
             <button
               id="btn-approve-subissues"
               className="btn btn-primary btn-lg"

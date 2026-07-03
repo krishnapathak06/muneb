@@ -11,10 +11,21 @@ export interface SubIssue {
 
 export async function POST(req: NextRequest) {
   try {
-    const { workspaceId, bgText, mainAgenda, committee } = await req.json();
+    const { workspaceId, bgText, mainAgenda, committee, force } = await req.json();
 
-    if (!workspaceId || !bgText) {
-      return NextResponse.json({ error: 'Missing workspaceId or bgText' }, { status: 400 });
+    if (!workspaceId) {
+      return NextResponse.json({ error: 'Missing workspaceId' }, { status: 400 });
+    }
+
+    if (!force) {
+      const existing = readWorkspaceFile<SubIssue[]>(workspaceId, 'sub_issues.json');
+      if (existing && existing.length > 0) {
+        return NextResponse.json({ subIssues: existing });
+      }
+    }
+
+    if (!bgText) {
+      return NextResponse.json({ error: 'Missing bgText' }, { status: 400 });
     }
 
     const prompt = `You are a MUN research analyst. Based on this Background Guide excerpt, propose exactly 4-5 sub-issues that meaningfully break down the main agenda: "${mainAgenda || 'the main agenda'}".
@@ -55,6 +66,8 @@ Requirements:
       title: si.title,
       description: si.description,
     }));
+
+    writeWorkspaceFile(workspaceId, 'sub_issues.json', subIssues);
 
     return NextResponse.json({ subIssues });
   } catch (err) {

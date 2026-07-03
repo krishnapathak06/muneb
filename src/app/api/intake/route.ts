@@ -40,6 +40,14 @@ export async function POST(req: NextRequest) {
     }
     fs.writeFileSync(path.join(wsDir, 'intake', 'portfolio_matrix.bin'), portfolioBuffer);
 
+    // Save sub issues to sub_issues.json
+    const subIssues = (intakeData.subIssues ?? []).map((si) => ({
+      id: uuidv4(),
+      title: si.title,
+      description: si.description,
+    }));
+    fs.writeFileSync(path.join(wsDir, 'sub_issues.json'), JSON.stringify(subIssues, null, 2));
+
     // Merge country lists (portfolio matrix is authoritative, BG supplemental)
     const mergedCountries: string[] = [];
     for (const c of [...portfolioCountries, ...intakeData.countries]) {

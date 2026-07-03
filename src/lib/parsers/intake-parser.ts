@@ -39,6 +39,7 @@ export interface ParsedIntake {
   committee: string;
   agenda: string;
   countries: string[];
+  subIssues: { title: string; description: string }[];
   rawText: string;
   confidence: 'high' | 'medium' | 'low';
   confidenceNotes: string[];
@@ -175,39 +176,55 @@ export function extractIntakeData(text: string): ParsedIntake {
   if (foundCountries.length === 0) notes.push('No countries detected — please enter the country list manually.');
   else if (foundCountries.length < 5) notes.push(`Only ${foundCountries.length} countries detected — verify this list is complete.`);
 
+  // Fallback sub-issues
+  const subIssues = [
+    { title: 'Implementation & Funding', description: 'Assessing the financial mechanisms and policy frameworks needed to implement the main agenda.' },
+    { title: 'Sovereignty & International Cooperation', description: 'Balancing national sovereignty against collective international commitments on this issue.' },
+    { title: 'Capacity Building & Technology Transfer', description: 'Assisting developing nations in adopting technologies and building resources to meet targets.' },
+    { title: 'Monitoring & Accountability', description: 'Establishing global standards, transparency reports, and compliance frameworks.' }
+  ];
+
   // --- Confidence scoring ---
   let confidence: 'high' | 'medium' | 'low' = 'high';
   if (notes.length >= 3) confidence = 'low';
   else if (notes.length >= 1) confidence = 'medium';
 
-  return { committee, agenda, countries: foundCountries, rawText: text, confidence, confidenceNotes: notes };
+  return { committee, agenda, countries: foundCountries, subIssues, rawText: text, confidence, confidenceNotes: notes };
 }
 
 export async function extractIntakeDataWithLLM(text: string): Promise<ParsedIntake> {
-  const sample = text.slice(0, 8000);
+  // Let it parse a very generous chunk of the PDF text to ensure it finds sub-issues even at the end
+  const sample = text.slice(0, 150000);
   
-  const systemPrompt = "You are a helpful assistant that extracts MUN committee names, agendas, and participating countries from background guides. Always respond in JSON format.";
+  const systemPrompt = "You are a helpful assistant that extracts MUN committee names, agendas, participating countries, and proposed sub-issues from background guides. Always respond in JSON format.";
   
-  const userPrompt = `Given the following background guide excerpt, extract:
+  const userPrompt = `Given the following background guide, extract:
 1. The exact name of the committee (e.g., UNEP, DISEC, UN Security Council).
 2. The main agenda topic (e.g., marine plastic pollution, outer space militarization).
-3. Any participating countries explicitly listed in this excerpt.
+3. Any participating countries explicitly listed in the guide.
+4. Exactly 4-5 key sub-issues (sub-topics) that meaningfully break down the main agenda. Look for sections like "Sub-topics", "Questions to Address", "Key Issues", or analyze the text of the guide to propose them.
 
 Provide your response in this EXACT JSON structure, with no markdown formatting or extra text:
 {
   "committee": "extracted committee name or empty string if not found",
   "agenda": "extracted agenda topic or empty string if not found",
-  "countries": ["country1", "country2"]
+  "countries": ["country1", "country2"],
+  "subIssues": [
+    {
+      "title": "Short, specific sub-issue title (3-8 words)",
+      "description": "1-2 sentence description of what this sub-issue covers and why it matters"
+    }
+  ]
 }
 
-Excerpt:
+Background Guide Text:
 ${sample}`;
 
   try {
     const chatResult = await chatWithRetry([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
-    ], { maxTokens: 1000, temperature: 0.2 });
+    ], { maxTokens: 1500, temperature: 0.2 });
 
     const parsed = JSON.parse(chatResult.content);
     
@@ -222,19 +239,34 @@ ${sample}`;
       }
     }
 
+    const subIssues = (parsed.subIssues ?? []).map((si: any) => ({
+      title: String(si.title || '').trim(),
+      description: String(si.description || '').trim()
+    })).filter((si: any) => si.title);
+
     const notes: string[] = [];
     if (!parsed.committee) notes.push('Could not detect committee name.');
     if (!parsed.agenda) notes.push('Could not detect agenda topic.');
     if (canonicalCountries.length === 0) notes.push('No countries detected.');
+    if (subIssues.length === 0) notes.push('No sub-issues detected.');
 
     let confidence: 'high' | 'medium' | 'low' = 'high';
     if (notes.length >= 2) confidence = 'low';
     else if (notes.length >= 1) confidence = 'medium';
 
+    // Fallback sub-issues if LLM missed them entirely
+    const finalSubIssues = subIssues.length > 0 ? subIssues : [
+      { title: 'Implementation & Funding', description: 'Assessing the financial mechanisms and policy frameworks needed to implement the main agenda.' },
+      { title: 'Sovereignty & International Cooperation', description: 'Balancing national sovereignty against collective international commitments on this issue.' },
+      { title: 'Capacity Building & Technology Transfer', description: 'Assisting developing nations in adopting technologies and building resources to meet targets.' },
+      { title: 'Monitoring & Accountability', description: 'Establishing global standards, transparency reports, and compliance frameworks.' }
+    ];
+
     return {
       committee: parsed.committee || '',
       agenda: parsed.agenda || '',
       countries: canonicalCountries,
+      subIssues: finalSubIssues,
       rawText: text,
       confidence,
       confidenceNotes: notes
