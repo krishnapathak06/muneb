@@ -1,6 +1,6 @@
 import { chatWithRetry } from '@/lib/openrouter';
 import { readWorkspaceFile, writeWorkspaceFile } from '@/lib/workspace';
-import { searchWeb } from '@/lib/search';
+import { searchWeb, SearchResult } from '@/lib/search';
 import fs from 'fs';
 import path from 'path';
 
@@ -119,6 +119,27 @@ async function researchTopic(
   const searchQuery = `${countryName} ${topicTitle} ${mainAgenda}`;
   const citations = await searchWeb(searchQuery);
 
+  // NEW: per-indicator dedicated searches
+  const indicatorCitationsMap: Record<string, SearchResult[]> = {};
+
+  // Run in small concurrent batches (e.g. 3 at a time) rather than all 8 at once,
+  // to avoid hammering Tavily/DDG with a sudden burst per country-topic call.
+  const BATCH_SIZE = 3;
+  for (let i = 0; i < indicators.length; i += BATCH_SIZE) {
+    const batch = indicators.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map((ind) => searchWeb(`${countryName} ${ind.label} ${topicTitle}`))
+    );
+    batch.forEach((ind, idx) => {
+      indicatorCitationsMap[ind.id] = batchResults[idx];
+    });
+  }
+
+  // Merge all indicator-specific citations into the overall citations pool
+  // used for source verification later in this function
+  const allIndicatorCitations = Object.values(indicatorCitationsMap).flat();
+  const allCitations = [...citations, ...allIndicatorCitations];
+
   const searchGroundingContext = citations.length > 0
     ? `Grounding Search Results (real pages retrieved for this query):\n` +
       citations.map((c, i) => `[Source ${i+1}]: ${c.title}\nURL: ${c.url}\nExcerpt: ${c.content}`).join('\n\n')
@@ -126,12 +147,19 @@ async function researchTopic(
 
   const indicatorsSection = indicators.length > 0
     ? `CRITICAL INDICATORS TO EXTRACT:\n` +
-      `For this topic, you MUST extract values for each of the following indicators. In your JSON response, the "indicator_values" array must have EXACTLY one entry for each indicator listed here:\n` +
-      indicators.map((ind) => `- [ID: ${ind.id}] ${ind.label}: ${ind.description}`).join('\n') +
+      `For this topic, you MUST extract values for each of the following indicators, using the dedicated search results provided for each one. In your JSON response, the "indicator_values" array must have EXACTLY one entry for each indicator listed here:\n\n` +
+      indicators.map((ind) => {
+        const indCitations = indicatorCitationsMap[ind.id] ?? [];
+        const indGrounding = indCitations.length > 0
+          ? indCitations.map((c, i) => `  [Result ${i+1}]: ${c.title}\n  URL: ${c.url}\n  Excerpt: ${c.content}`).join('\n')
+          : '  No dedicated search results found for this indicator.';
+        return `- [ID: ${ind.id}] ${ind.label}: ${ind.description}\n${indGrounding}`;
+      }).join('\n\n') +
       `\n\nFor each entry in "indicator_values":\n` +
       `- "indicatorId" must match the ID from the list above.\n` +
-      `- "status" must be exactly "found", "insufficient_sourcing", or "not_applicable" (e.g. landlocked country for maritime metric).\n` +
-      `- "value" should be the specific answer/value (e.g. "$12B", "Ratified in 2021", "N/A"), or null if status is "insufficient_sourcing" or "not_applicable".\n` +
+      `- "status" must be exactly "found", "insufficient_sourcing", or "not_applicable".\n` +
+      `- Base "found" values ONLY on the dedicated search results shown for that specific indicator, or on the general topic search results — not on inference/guessing.\n` +
+      `- "value" should be the specific answer/value, or null if status is "insufficient_sourcing" or "not_applicable".\n` +
       `- "source_index" is the 0-indexed number of the source in the "sources" list below that supports this indicator value.`
     : '';
 
@@ -181,7 +209,7 @@ If you cannot find sourced information for a section, write "insufficient sourci
     const parsed = JSON.parse(responseText);
     const modelSources = parsed.sources ?? [];
 
-    const normalizedCitations = citations.map(c => ({
+    const normalizedCitations = allCitations.map(c => ({
       normalizedUrl: normalizeUrl(c.url),
       original: c
     }));

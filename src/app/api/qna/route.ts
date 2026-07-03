@@ -7,6 +7,7 @@ import path from 'path';
 // Ollama local model config
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? 'qwen3.5:4b';
+const NUM_CTX = 262144;
 
 interface QnaMessage {
   role: 'user' | 'assistant';
@@ -32,7 +33,7 @@ async function callOllama(messages: OllamaMessage[]): Promise<string> {
       model: OLLAMA_MODEL,
       messages,
       stream: false,
-      options: { temperature: 0.4, num_predict: 1500 },
+      options: { temperature: 0.4, num_predict: 1500, num_ctx: NUM_CTX },
     }),
   });
 
@@ -325,17 +326,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Token length verification check (Part 1 limit: 256k tokens)
-    const num_ctx = 262144;
     const estimatedTokens = Math.ceil(context.length / 4);
     const expectedResponseBudget = 2048;
 
-    if (estimatedTokens + expectedResponseBudget > num_ctx) {
+    if (estimatedTokens + expectedResponseBudget > NUM_CTX) {
       return NextResponse.json(
         {
           error: 'context_exceeded',
           message: 'This question requires more source material than the local model can process at once. Try narrowing to fewer countries or sub-issues.',
           estimatedTokens,
-          limit: num_ctx,
+          limit: NUM_CTX,
         },
         { status: 400 }
       );

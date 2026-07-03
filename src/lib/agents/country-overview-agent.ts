@@ -37,7 +37,7 @@ function normalizeUrl(urlStr: string): string {
 }
 
 export interface CountryOverviewResult {
-  timeline: { date: string; event: string; significance: string; verified: boolean }[];
+  timeline: { date: string; event: string; significance: string; sources: string[]; verified: boolean }[];
   key_conflicts: { title: string; description: string; status: string; relevance: string; sources: string[] }[];
   recent_shifts: { title: string; description: string; date: string; implications: string; sources: string[] }[];
   allies: { country: string; relationship_note: string; sources: string[] }[];
@@ -74,7 +74,7 @@ Your analysis must be strictly grounded in the real search results provided. If 
 Return EXACTLY a JSON response matching this schema:
 {
   "timeline": [
-    { "date": "Date of event", "event": "Brief description of event", "significance": "Why this event is crucial for MUN framing", "verified": true }
+    { "date": "Date of event", "event": "Brief description of event", "significance": "Why this event is crucial for MUN framing", "sources": ["https://..."] }
   ],
   "key_conflicts": [
     { "title": "Conflict name", "description": "Overview of the conflict", "status": "Current status", "relevance": "Why it is relevant to understanding the country's positioning", "sources": ["https://..."] }
@@ -202,13 +202,6 @@ ${searchGroundingContext}`;
     // 4. Update the verification state of timeline & details
     const verifiedUrls = new Set(sources.filter((s) => s.verified).map((s) => normalizeUrl(s.url)));
 
-    const timeline = (parsed.timeline || []).map((t: any) => ({
-      date: t.date || 'Unknown',
-      event: t.event || '',
-      significance: t.significance || '',
-      verified: true, // Grounded by the validated search corpus
-    }));
-
     const verifyItems = (items: any[]) => {
       return (items || []).map((item) => {
         const itemUrls = (item.sources || []).map((u: string) => normalizeUrl(u));
@@ -219,6 +212,14 @@ ${searchGroundingContext}`;
         };
       });
     };
+
+    const timeline = verifyItems(parsed.timeline || []).map((t: any) => ({
+      date: t.date || 'Unknown',
+      event: t.event || '',
+      significance: t.significance || '',
+      sources: t.sources || [],
+      verified: t.verified,
+    }));
 
     const overviewResult: CountryOverviewResult = {
       timeline,
