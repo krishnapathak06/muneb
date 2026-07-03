@@ -42,7 +42,7 @@ export default function CountryOverviewView({ workspaceId, countryId, countryNam
     setExpandedConflict(null);
     setExpandedShift(null);
 
-    fetch(`/api/workspace-data/${workspaceId}/research/${countryId}/overview.json`)
+    fetch(`/api/workspace-data/${workspaceId}/research/${countryId}/overview`)
       .then((r) => r.json())
       .then((d) => {
         if (d && !d.error) setData(d);
