@@ -44,8 +44,23 @@ Return a JSON array with EXACTLY this structure, without markdown backticks:
       { role: 'user', content: mainPrompt }
     ], { temperature: 0.3 });
 
+    function parseJSONList(text: string): any[] {
+      const trimmed = text.trim();
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        const match = trimmed.match(/\[[\s\S]*\]/);
+        if (match) {
+          try {
+            return JSON.parse(match[0]);
+          } catch {}
+        }
+      }
+      throw new Error('Failed to parse indicators list JSON');
+    }
+
     try {
-      const parsedMain = JSON.parse(mainRes.content);
+      const parsedMain = parseJSONList(mainRes.content);
       if (!Array.isArray(parsedMain)) throw new Error('Main indicators response is not an array');
       indicatorsData['main'] = parsedMain.slice(0, 8).map((ind: any) => ({
         id: uuidv4(),
@@ -84,7 +99,7 @@ Return a JSON array with EXACTLY this structure, without markdown backticks:
       ], { temperature: 0.3 });
 
       try {
-        const parsedSub = JSON.parse(subRes.content);
+        const parsedSub = parseJSONList(subRes.content);
         if (!Array.isArray(parsedSub)) throw new Error('Sub-issue indicators response is not an array');
         indicatorsData[`subissue_${si.id}`] = parsedSub.slice(0, 8).map((ind: any) => ({
           id: uuidv4(),
