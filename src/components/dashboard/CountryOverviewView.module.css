@@ -1,0 +1,254 @@
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.section {
+  padding: var(--space-5);
+}
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.summaryCard {
+  padding: var(--space-5);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+}
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+.profileItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.profileLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.profileValue {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.membershipsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.splitGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--space-6);
+}
+
+/* Timeline CSS styling */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: var(--space-6);
+  border-left: 2px solid var(--border-subtle);
+  gap: var(--space-6);
+  margin-left: 10px;
+  margin-top: var(--space-2);
+}
+.timelineItem {
+  position: relative;
+}
+.timelineMarker {
+  position: absolute;
+  left: -31px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: 2px solid var(--bg-surface);
+  box-shadow: 0 0 0 2px var(--border-subtle);
+}
+.timelineContent {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.timelineHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.timelineDate {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+.timelineEvent {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.timelineSig {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Accordion list details */
+.accordionList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.accordionItem {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-input);
+}
+.accordionHeader {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: left;
+  transition: background-color 0.2s;
+}
+.accordionHeader:hover {
+  background-color: var(--bg-card);
+}
+.accordionHeaderTitle {
+  display: flex;
+  align-items: center;
+}
+.accordionBody {
+  padding: var(--space-4);
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.shiftDate {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.prose {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Alliances relations card styling */
+.relList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.relCard {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.relHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.relCountry {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.relNote {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Grounded Sources grid styles */
+.sourcesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-3);
+}
+.sourceCard {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sourceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sourceTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  text-decoration: none;
+  word-break: break-word;
+}
+.sourceTitle:hover {
+  text-decoration: underline;
+}
+.sourceExtract {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.4;
+  background: var(--bg-card);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--border-default);
+}
+
+.loading {
+  padding: var(--space-6);
+}
+.noData {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+  text-align: center;
+  color: var(--text-secondary);
+  gap: var(--space-2);
+}

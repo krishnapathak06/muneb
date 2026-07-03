@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import CountryTopicView from './dashboard/CountryTopicView';
+import CountryOverviewView from './dashboard/CountryOverviewView';
 import QnaFeed from './dashboard/QnaFeed';
 import LiveTracker from './LiveTracker';
 import styles from './Dashboard.module.css';
@@ -16,7 +17,7 @@ export default function Dashboard({ workspaceId }: Props) {
   const [subIssues, setSubIssues] = useState<SubIssue[]>([]);
   const [mainAgenda, setMainAgenda] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<string>('main');
+  const [selectedTopic, setSelectedTopic] = useState<string>('overview');
   const [countrySearch, setCountrySearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'research' | 'live'>('research');
@@ -54,6 +55,7 @@ export default function Dashboard({ workspaceId }: Props) {
   );
 
   const topics = [
+    { id: 'overview', label: '🏛️ Country Overview' },
     { id: 'main', label: 'Main Agenda' },
     ...subIssues.map((si) => ({ id: si.id, label: si.title })),
   ];
@@ -153,13 +155,21 @@ export default function Dashboard({ workspaceId }: Props) {
             {/* Main research view */}
             <div className={styles.mainPanel}>
               {selectedCountry ? (
-                <CountryTopicView
-                  workspaceId={workspaceId}
-                  countryId={selectedCountry.id}
-                  countryName={selectedCountry.name}
-                  topicId={selectedTopic}
-                  topicLabel={topics.find((t) => t.id === selectedTopic)?.label ?? ''}
-                />
+                selectedTopic === 'overview' ? (
+                  <CountryOverviewView
+                    workspaceId={workspaceId}
+                    countryId={selectedCountry.id}
+                    countryName={selectedCountry.name}
+                  />
+                ) : (
+                  <CountryTopicView
+                    workspaceId={workspaceId}
+                    countryId={selectedCountry.id}
+                    countryName={selectedCountry.name}
+                    topicId={selectedTopic}
+                    topicLabel={topics.find((t) => t.id === selectedTopic)?.label ?? ''}
+                  />
+                )
               ) : (
                 <div className={styles.noSelection}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>🌍</div>

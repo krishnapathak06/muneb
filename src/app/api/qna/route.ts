@@ -73,8 +73,7 @@ function loadCountryResearch(workspaceId: string, countryId: string, topicFile: 
 function loadRawSourceText(
   workspaceId: string,
   countryId: string,
-  topicFile: string,
-  maxSourcesPerTopic = 3
+  topicFile: string
 ): { text: string; sourceCount: number } {
   const topicPath = path.join(process.cwd(), 'workspaces', workspaceId, 'research', countryId, topicFile);
   if (!fs.existsSync(topicPath)) {
@@ -132,14 +131,11 @@ function loadRawSourceText(
     // Sort by credibility_tier ascending (tier 1 first)
     verifiedSources.sort((a, b) => (a.credibility_tier || 3) - (b.credibility_tier || 3));
 
-    // Limit to top maxSourcesPerTopic
-    const selectedSources = verifiedSources.slice(0, maxSourcesPerTopic);
-
-    // 3. Read raw .txt files from raw_sources/
+    // 3. Read raw .txt files from raw_sources/ - UNTRUNCATED and loading ALL of them
     const rawDir = path.join(process.cwd(), 'workspaces', workspaceId, 'research', countryId, 'raw_sources');
     const sourceTexts: string[] = [];
 
-    for (const src of selectedSources) {
+    for (const src of verifiedSources) {
       const safeTitle = (src.title || 'source')
         .replace(/[^a-z0-9]/gi, '_')
         .replace(/_+/g, '_')
@@ -149,11 +145,7 @@ function loadRawSourceText(
 
       if (fs.existsSync(filePath)) {
         try {
-          let rawText = fs.readFileSync(filePath, 'utf-8');
-          // Truncate to roughly 1500 tokens (approx 6000 characters)
-          if (rawText.length > 6000) {
-            rawText = rawText.slice(0, 6000) + '... [TRUNCATED]';
-          }
+          const rawText = fs.readFileSync(filePath, 'utf-8');
           sourceTexts.push(`Source: ${src.title}\nURL: ${src.url}\nContent:\n${rawText}`);
         } catch {}
       }
@@ -164,7 +156,7 @@ function loadRawSourceText(
       combinedText += `\n\n=== RAW SOURCES ===\n${sourceTexts.join('\n\n')}`;
     }
 
-    return { text: combinedText, sourceCount: selectedSources.length };
+    return { text: combinedText, sourceCount: verifiedSources.length };
   } catch (e) {
     console.error('[loadRawSourceText] error:', e);
     return { text: '', sourceCount: 0 };
@@ -283,23 +275,13 @@ export async function POST(req: NextRequest) {
     const targetedCountries = await classifyTargetCountries(question, countries);
     const targetedSubIssues = await classifyTargetSubIssues(question, agendaData?.sub_issues ?? []);
 
-    let isBroadQuery = targetedCountries.length === 0 || targetedCountries.length > 3;
-    let fallbackDueToCap = false;
-
-    if (!isBroadQuery) {
-      const combos = targetedCountries.length * (1 + targetedSubIssues.length);
-      if (combos > 6) {
-        isBroadQuery = true;
-        fallbackDueToCap = true;
-        console.log(`[QnA] Targeted combos count is ${combos} (exceeds threshold of 6). Falling back to broad synthesis path.`);
-      }
-    }
+    const isBroadQuery = targetedCountries.length === 0 || targetedCountries.length > 3;
 
     let context = '';
     const citations: string[] = [];
 
     if (isBroadQuery) {
-      const suffix = fallbackDueToCap ? ' (summary only — combos limit exceeded)' : ' (summary only — broad query)';
+      const suffix = ' (summary only — broad query)';
       for (const country of countries.slice(0, 20)) {
         const summary = loadCountryResearch(workspaceId, country.id, 'main_agenda.json');
         if (summary) {
@@ -322,6 +304,23 @@ export async function POST(req: NextRequest) {
           }
         }
       }
+    }
+
+    // Token length verification check (Part 1 limit: 256k tokens)
+    const num_ctx = 262144;
+    const estimatedTokens = Math.ceil(context.length / 4);
+    const expectedResponseBudget = 2048;
+
+    if (estimatedTokens + expectedResponseBudget > num_ctx) {
+      return NextResponse.json(
+        {
+          error: 'context_exceeded',
+          message: 'This question requires more source material than the local model can process at once. Try narrowing to fewer countries or sub-issues.',
+          estimatedTokens,
+          limit: num_ctx,
+        },
+        { status: 400 }
+      );
     }
 
     const systemPrompt = `You are a MUN research assistant for the committee agenda: "${agendaData?.main_agenda ?? 'unknown'}".

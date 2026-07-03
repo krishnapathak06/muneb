@@ -50,6 +50,22 @@ export default function QnaFeed({ workspaceId }: Props) {
         body: JSON.stringify({ workspaceId, question: q }),
       });
       const data = await res.json();
+      
+      if (data.error === 'context_exceeded') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: data.message,
+            timestamp: new Date().toISOString(),
+            isContextError: true,
+            estimatedTokens: data.estimatedTokens,
+            limit: data.limit
+          } as any
+        ]);
+        return;
+      }
+      
       if (data.error) throw new Error(data.error);
 
       setMessages((prev) => [
@@ -99,23 +115,42 @@ export default function QnaFeed({ workspaceId }: Props) {
           </div>
         )}
 
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`${styles.message} ${msg.role === 'user' ? styles.userMsg : styles.assistantMsg} animate-fade-in`}
-          >
-            <div className={styles.msgBubble}>
-              <p className={styles.msgText}>{msg.content}</p>
-              {msg.citations && msg.citations.length > 0 && (
-                <div className={styles.citations}>
-                  {msg.citations.map((c, j) => (
-                    <span key={j} className={`badge badge-blue ${styles.citation}`}>{c}</span>
-                  ))}
+        {messages.map((msg: any, i) => {
+          if (msg.isContextError) {
+            return (
+              <div key={i} className={`${styles.message} ${styles.errorMsg} animate-fade-in`}>
+                <div className={styles.errorBubble}>
+                  <div className={styles.errorTitle}>⚠ Context Limit Exceeded</div>
+                  <p className={styles.msgText}>{msg.content}</p>
+                  <div className={styles.errorMeta}>
+                    <span>Estimated: {msg.estimatedTokens?.toLocaleString()} tokens</span>
+                    <span>Max limit: {msg.limit?.toLocaleString()} tokens</span>
+                  </div>
+                  <div className={styles.errorResolution}>
+                    💡 Try narrowing your question to fewer countries or sub-issues.
+                  </div>
                 </div>
-              )}
+              </div>
+            );
+          }
+          return (
+            <div
+              key={i}
+              className={`${styles.message} ${msg.role === 'user' ? styles.userMsg : styles.assistantMsg} animate-fade-in`}
+            >
+              <div className={styles.msgBubble}>
+                <p className={styles.msgText}>{msg.content}</p>
+                {msg.citations && msg.citations.length > 0 && (
+                  <div className={styles.citations}>
+                    {msg.citations.map((c: string, j: number) => (
+                      <span key={j} className={`badge badge-blue ${styles.citation}`}>{c}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {loading && (
           <div className={`${styles.message} ${styles.assistantMsg}`}>

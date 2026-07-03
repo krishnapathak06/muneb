@@ -1,4 +1,5 @@
 import { runCountryAgent, AgendaData, CountryResearchResult } from './country-agent';
+import { runCountryOverviewAgent } from './country-overview-agent';
 import { writeWorkspaceFile } from '@/lib/workspace';
 
 export type CountryStatus = 'queued' | 'researching' | 'done' | 'failed';
@@ -44,20 +45,23 @@ export async function orchestrateResearch(
         progress[country.id].startedAt = new Date().toISOString();
         writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
 
-        const result = await runCountryAgent(
-          workspaceId,
-          country.name,
-          country.id,
-          committee,
-          agendaData,
-          (stage, embeddedCount) => {
-            progress[country.id].stage = stage;
-            if (embeddedCount !== undefined) {
-              progress[country.id].embeddedCount = embeddedCount;
+        const [result, overviewResult] = await Promise.all([
+          runCountryAgent(
+            workspaceId,
+            country.name,
+            country.id,
+            committee,
+            agendaData,
+            (stage, embeddedCount) => {
+              progress[country.id].stage = stage;
+              if (embeddedCount !== undefined) {
+                progress[country.id].embeddedCount = embeddedCount;
+              }
+              writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
             }
-            writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
-          }
-        );
+          ),
+          runCountryOverviewAgent(workspaceId, country.name, country.id)
+        ]);
 
         progress[country.id].status = result.status;
         progress[country.id].completedAt = new Date().toISOString();
@@ -68,6 +72,7 @@ export async function orchestrateResearch(
           const allSources = [
             ...(result.mainAgenda?.sources ?? []),
             ...Object.values(result.subIssues ?? {}).flatMap((s) => s.sources ?? []),
+            ...(overviewResult.sources ?? []),
           ];
           progress[country.id].embeddedCount = allSources.filter(s => s.verified).length;
         }
@@ -99,20 +104,23 @@ export async function orchestrateResearch(
           progress[country.id].error = undefined;
           writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
 
-          const result = await runCountryAgent(
-            workspaceId,
-            country.name,
-            country.id,
-            committee,
-            agendaData,
-            (stage, embeddedCount) => {
-              progress[country.id].stage = `Retry: ${stage}`;
-              if (embeddedCount !== undefined) {
-                progress[country.id].embeddedCount = embeddedCount;
+          const [result, overviewResult] = await Promise.all([
+            runCountryAgent(
+              workspaceId,
+              country.name,
+              country.id,
+              committee,
+              agendaData,
+              (stage, embeddedCount) => {
+                progress[country.id].stage = `Retry: ${stage}`;
+                if (embeddedCount !== undefined) {
+                  progress[country.id].embeddedCount = embeddedCount;
+                }
+                writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
               }
-              writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
-            }
-          );
+            ),
+            runCountryOverviewAgent(workspaceId, country.name, country.id)
+          ]);
 
           progress[country.id].status = result.status;
           progress[country.id].completedAt = new Date().toISOString();
@@ -122,6 +130,7 @@ export async function orchestrateResearch(
             const allSources = [
               ...(result.mainAgenda?.sources ?? []),
               ...Object.values(result.subIssues ?? {}).flatMap((s) => s.sources ?? []),
+              ...(overviewResult.sources ?? []),
             ];
             progress[country.id].embeddedCount = allSources.filter(s => s.verified).length;
           }
