@@ -21,10 +21,51 @@ export interface ChatResult {
   citations: { url: string; title: string; content: string }[];
 }
 
+const queue: (() => void)[] = [];
+const requestTimestamps: number[] = [];
+const RATE_LIMIT_MAX_REQUESTS = 13;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+let processing = false;
+
+async function acquireToken(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    queue.push(resolve);
+    processQueue();
+  });
+}
+
+async function processQueue() {
+  if (processing) return;
+  processing = true;
+
+  while (queue.length > 0) {
+    const now = Date.now();
+    while (requestTimestamps.length > 0 && requestTimestamps[0] < now - RATE_LIMIT_WINDOW_MS) {
+      requestTimestamps.shift();
+    }
+
+    if (requestTimestamps.length < RATE_LIMIT_MAX_REQUESTS) {
+      requestTimestamps.push(now);
+      const nextResolve = queue.shift();
+      if (nextResolve) nextResolve();
+    } else {
+      const oldestTime = requestTimestamps[0];
+      const waitTime = oldestTime + RATE_LIMIT_WINDOW_MS - now;
+      if (waitTime > 0) {
+        console.log(`[RateLimiter] Rolling window limit reached. Waiting ${Math.round(waitTime / 1000)}s...`);
+        await new Promise(r => setTimeout(r, waitTime));
+      }
+    }
+  }
+
+  processing = false;
+}
+
 export async function chat(
   messages: ChatMessage[],
   opts?: { temperature?: number; maxTokens?: number }
 ): Promise<ChatResult> {
+  await acquireToken();
   const response = await client.chat.completions.create({
     model: MODEL,
     messages,
