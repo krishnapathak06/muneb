@@ -12,6 +12,7 @@ interface Source {
   extracted_text: string;
   credibility_tier: 1 | 2 | 3;
   verified?: boolean;
+  raw_content?: string;
 }
 
 interface TopicData {
@@ -47,10 +48,12 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
   const [data, setData] = useState<TopicData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedSources, setExpandedSources] = useState(false);
+  const [expandedRaw, setExpandedRaw] = useState<number | null>(null);
 
   useEffect(() => {
     setLoading(true);
     setData(null);
+    setExpandedRaw(null);
     const fileName = topicId === 'main' ? 'main_agenda' : `subissue_${topicId}`;
     fetch(`/api/workspace-data/${workspaceId}/research/${countryId}/${fileName}`)
       .then((r) => r.json())
@@ -209,6 +212,20 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
                   )}
                   {src.extracted_text && (
                     <blockquote className={styles.sourceQuote}>"{src.extracted_text.slice(0, 240)}"</blockquote>
+                  )}
+                  {src.raw_content && (
+                    <div style={{ marginTop: '6px' }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ padding: '2px 8px', fontSize: '10px', height: 'auto', minHeight: 'unset' }}
+                        onClick={() => setExpandedRaw(expandedRaw === i ? null : i)}
+                      >
+                        {expandedRaw === i ? 'Hide Full Text' : 'View Full Text'}
+                      </button>
+                      {expandedRaw === i && (
+                        <pre className={styles.rawContentPre}>{src.raw_content}</pre>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}

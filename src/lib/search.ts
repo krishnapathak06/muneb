@@ -2,6 +2,7 @@ export interface SearchResult {
   url: string;
   title: string;
   content: string;
+  rawContent?: string;
 }
 
 export async function searchWeb(query: string): Promise<SearchResult[]> {
@@ -26,6 +27,7 @@ async function searchTavily(query: string, apiKey: string): Promise<SearchResult
         query,
         search_depth: 'basic',
         max_results: 5,
+        include_raw_content: true,
       }),
     });
     if (!res.ok) {
@@ -37,6 +39,7 @@ async function searchTavily(query: string, apiKey: string): Promise<SearchResult
       url: r.url ?? '',
       title: r.title ?? '',
       content: r.content ?? '',
+      rawContent: r.raw_content ?? '',
     }));
   } catch (err) {
     console.error('[Tavily] Error:', err);
@@ -89,7 +92,8 @@ async function searchDDG(query: string): Promise<SearchResult[]> {
         results.push({
           url: cleanedUrl,
           title,
-          content: snippet
+          content: snippet,
+          rawContent: '',
         });
       }
     }

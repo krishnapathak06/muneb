@@ -12,6 +12,7 @@ export interface Source {
   credibility_tier: 1 | 2 | 3;
   retrieved_at: string;
   verified: boolean;
+  raw_content?: string;
 }
 
 function normalizeUrl(urlStr: string): string {
@@ -171,6 +172,7 @@ If you cannot find sourced information for a section, write "insufficient sourci
           credibility_tier: (s.credibility_tier ?? 3) as 1 | 2 | 3,
           retrieved_at: s.retrieved_at ?? new Date().toISOString(),
           verified: true,
+          raw_content: matched.original.rawContent || '',
         });
       } else {
         sources.push({
@@ -181,6 +183,7 @@ If you cannot find sourced information for a section, write "insufficient sourci
           credibility_tier: (s.credibility_tier ?? 3) as 1 | 2 | 3,
           retrieved_at: s.retrieved_at ?? new Date().toISOString(),
           verified: false,
+          raw_content: '',
         });
       }
     }
@@ -196,6 +199,7 @@ If you cannot find sourced information for a section, write "insufficient sourci
           credibility_tier: 3,
           retrieved_at: new Date().toISOString(),
           verified: true,
+          raw_content: c.original.rawContent || '',
         });
       }
     }
@@ -355,6 +359,28 @@ export async function runCountryAgent(
       ...Object.values(subIssueResearch).flatMap((s) => s.sources),
     ];
     fs.writeFileSync(path.join(researchDir, 'sources.json'), JSON.stringify(allSources, null, 2));
+
+    // Save full text raw sources as separate .txt files
+    const rawSourcesDir = path.join(researchDir, 'raw_sources');
+    fs.mkdirSync(rawSourcesDir, { recursive: true });
+    
+    for (let i = 0; i < allSources.length; i++) {
+      const src = allSources[i];
+      if (src.raw_content) {
+        // Safe filename: replace non-alphanumeric characters
+        const safeTitle = (src.title || `source_${i}`)
+          .replace(/[^a-z0-9]/gi, '_')
+          .replace(/_+/g, '_')
+          .slice(0, 50);
+        const filename = `${safeTitle || 'source'}.txt`;
+        const contentHeader = `URL: ${src.url}\nTitle: ${src.title}\nRetrieved At: ${src.retrieved_at}\n\n`;
+        try {
+          fs.writeFileSync(path.join(rawSourcesDir, filename), contentHeader + src.raw_content);
+        } catch (e) {
+          console.error('[CountryAgent] Failed to write raw source file:', e);
+        }
+      }
+    }
 
     return result;
   } catch (err) {
