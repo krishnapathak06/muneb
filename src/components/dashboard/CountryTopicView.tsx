@@ -11,6 +11,7 @@ interface Source {
   publication_date: string;
   extracted_text: string;
   credibility_tier: 1 | 2 | 3;
+  verified?: boolean;
 }
 
 interface TopicData {
@@ -196,6 +197,11 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
                     <a href={src.url} target="_blank" rel="noopener noreferrer" className={styles.sourceTitle}>
                       {src.title || src.url}
                     </a>
+                    {src.verified !== undefined && (
+                      <span className={`badge ${src.verified ? 'badge-green' : 'badge-yellow'}`}>
+                        {src.verified ? '✓ Verified' : '⚠ Unverified'}
+                      </span>
+                    )}
                     <span className={`badge ${TIER_CLASS[src.credibility_tier]}`}>{TIER_LABEL[src.credibility_tier]}</span>
                   </div>
                   {src.publication_date && (

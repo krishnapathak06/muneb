@@ -36,9 +36,10 @@ Requirements:
 - Titles should be concise (3-8 words)
 - Descriptions should be concrete and specific to this agenda`;
 
-    const responseText = await chatWithRetry([
+    const chatResult = await chatWithRetry([
       { role: 'user', content: prompt },
     ], { maxTokens: 1000, temperature: 0.4 });
+    const responseText = chatResult.content;
 
     let rawSubIssues: { title: string; description: string }[] = [];
     try {

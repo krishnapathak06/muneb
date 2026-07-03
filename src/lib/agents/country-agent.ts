@@ -10,6 +10,29 @@ export interface Source {
   extracted_text: string;
   credibility_tier: 1 | 2 | 3;
   retrieved_at: string;
+  verified: boolean;
+}
+
+function normalizeUrl(urlStr: string): string {
+  try {
+    const url = new URL(urlStr);
+    let hostname = url.hostname.toLowerCase();
+    if (hostname.startsWith('www.')) {
+      hostname = hostname.slice(4);
+    }
+    let normalized = hostname + url.pathname.toLowerCase();
+    if (normalized.endsWith('/')) {
+      normalized = normalized.slice(0, -1);
+    }
+    return normalized;
+  } catch {
+    let cleaned = urlStr.trim().toLowerCase();
+    cleaned = cleaned.replace(/^(https?:\/\/)?(www\.)?/, '');
+    if (cleaned.endsWith('/')) {
+      cleaned = cleaned.slice(0, -1);
+    }
+    return cleaned;
+  }
 }
 
 export type ConfidenceLevel = 'Well-sourced' | 'Sparse' | 'Insufficient';
@@ -42,11 +65,12 @@ export interface CountryResearchResult {
 }
 
 function assessConfidence(sources: Source[]): ConfidenceLevel {
-  if (sources.length === 0) return 'Insufficient';
-  const tier1 = sources.filter((s) => s.credibility_tier === 1).length;
-  const tier2 = sources.filter((s) => s.credibility_tier === 2).length;
-  if (sources.length >= 3 && (tier1 + tier2) >= 2) return 'Well-sourced';
-  if (sources.length >= 1) return 'Sparse';
+  const verified = sources.filter((s) => s.verified);
+  if (verified.length === 0) return 'Insufficient';
+  const tier1 = verified.filter((s) => s.credibility_tier === 1).length;
+  const tier2 = verified.filter((s) => s.credibility_tier === 2).length;
+  if (verified.length >= 3 && (tier1 + tier2) >= 2) return 'Well-sourced';
+  if (verified.length >= 1) return 'Sparse';
   return 'Insufficient';
 }
 
@@ -106,21 +130,65 @@ Return a JSON object with EXACTLY this structure:
 
 If you cannot find sourced information for a section, write "insufficient sourcing — verify before use" for that field. Do NOT invent sources.`;
 
-  const responseText = await chatWithRetry([
+  const { content: responseText, citations } = await chatWithRetry([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ], { maxTokens: 3000 });
 
   try {
     const parsed = JSON.parse(responseText);
-    const sources: Source[] = (parsed.sources ?? []).map((s: Partial<Source>) => ({
-      url: s.url ?? '',
-      title: s.title ?? '',
-      publication_date: s.publication_date ?? '',
-      extracted_text: s.extracted_text ?? '',
-      credibility_tier: (s.credibility_tier ?? 3) as 1 | 2 | 3,
-      retrieved_at: s.retrieved_at ?? new Date().toISOString(),
+    const modelSources = parsed.sources ?? [];
+
+    const normalizedCitations = citations.map(c => ({
+      normalizedUrl: normalizeUrl(c.url),
+      original: c
     }));
+
+    const matchedCitationUrls = new Set<string>();
+    const sources: Source[] = [];
+
+    for (const s of modelSources) {
+      const sNormalized = normalizeUrl(s.url ?? '');
+      const matched = normalizedCitations.find(c => c.normalizedUrl === sNormalized);
+      if (matched) {
+        matchedCitationUrls.add(matched.normalizedUrl);
+        sources.push({
+          url: s.url ?? '',
+          title: matched.original.title || s.title || '',
+          publication_date: s.publication_date ?? '',
+          extracted_text: matched.original.content || s.extracted_text || '',
+          credibility_tier: (s.credibility_tier ?? 3) as 1 | 2 | 3,
+          retrieved_at: s.retrieved_at ?? new Date().toISOString(),
+          verified: true,
+        });
+      } else {
+        sources.push({
+          url: s.url ?? '',
+          title: s.title ?? '',
+          publication_date: s.publication_date ?? '',
+          extracted_text: s.extracted_text ?? '',
+          credibility_tier: (s.credibility_tier ?? 3) as 1 | 2 | 3,
+          retrieved_at: s.retrieved_at ?? new Date().toISOString(),
+          verified: false,
+        });
+      }
+    }
+
+    // Add under-reported citations
+    for (const c of normalizedCitations) {
+      if (!matchedCitationUrls.has(c.normalizedUrl)) {
+        sources.push({
+          url: c.original.url,
+          title: c.original.title || c.original.url,
+          publication_date: '',
+          extracted_text: c.original.content,
+          credibility_tier: 3,
+          retrieved_at: new Date().toISOString(),
+          verified: true,
+        });
+      }
+    }
+
     return {
       stance_summary: parsed.stance_summary ?? 'insufficient sourcing — verify before use',
       stats: parsed.stats ?? [],
@@ -162,10 +230,11 @@ Return a JSON object with EXACTLY this structure:
   "recent_shifts": "notable recent shifts in alliances, trade deals, diplomatic ruptures, or policy reversals relevant to this agenda"
 }`;
 
-  const responseText = await chatWithRetry([
+  const chatResult = await chatWithRetry([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ], { maxTokens: 1000 });
+  const responseText = chatResult.content;
 
   try {
     const parsed = JSON.parse(responseText);

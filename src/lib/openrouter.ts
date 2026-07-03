@@ -16,23 +16,40 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ChatResult {
+  content: string;
+  citations: { url: string; title: string; content: string }[];
+}
+
 export async function chat(
   messages: ChatMessage[],
   opts?: { temperature?: number; maxTokens?: number }
-): Promise<string> {
+): Promise<ChatResult> {
   const response = await client.chat.completions.create({
     model: MODEL,
     messages,
     temperature: opts?.temperature ?? 0.3,
     max_tokens: opts?.maxTokens ?? 4096,
   });
-  return response.choices[0]?.message?.content ?? '';
+
+  const message = response.choices[0]?.message as any;
+  const content = message?.content ?? '';
+  const annotations = message?.annotations ?? [];
+  const citations = annotations
+    .filter((ann: any) => ann.type === 'url_citation' && ann.url_citation)
+    .map((ann: any) => ({
+      url: ann.url_citation.url ?? '',
+      title: ann.url_citation.title ?? '',
+      content: ann.url_citation.content ?? '',
+    }));
+
+  return { content, citations };
 }
 
 export async function chatWithRetry(
   messages: ChatMessage[],
   opts?: { temperature?: number; maxTokens?: number; maxRetries?: number }
-): Promise<string> {
+): Promise<ChatResult> {
   const maxRetries = opts?.maxRetries ?? 5;
   let lastError: Error | null = null;
 
