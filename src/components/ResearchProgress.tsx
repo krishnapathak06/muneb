@@ -30,6 +30,7 @@ const STATUS_ICON: Record<CountryStatus, string> = {
 export default function ResearchProgress({ workspaceId, onComplete }: Props) {
   const [progress, setProgress] = useState<Record<string, CountryProgress>>({});
   const [wsStatus, setWsStatus] = useState('researching');
+  const [restarting, setRestarting] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   async function poll() {
@@ -51,6 +52,25 @@ export default function ResearchProgress({ workspaceId, onComplete }: Props) {
     return () => clearInterval(intervalRef.current!);
   }, [workspaceId]);
 
+  async function handleRestart() {
+    if (!confirm('Are you sure you want to restart the research run? This will overwrite existing country research logs.')) return;
+    setRestarting(true);
+    try {
+      const res = await fetch('/api/research/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceId }),
+      });
+      if (!res.ok) throw new Error('Failed to restart research');
+      setWsStatus('researching');
+      poll();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setRestarting(false);
+    }
+  }
+
   const entries = Object.entries(progress);
   const done = entries.filter(([, v]) => v.status === 'done').length;
   const failed = entries.filter(([, v]) => v.status === 'failed').length;
@@ -61,12 +81,22 @@ export default function ResearchProgress({ workspaceId, onComplete }: Props) {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>Step 3 — Research in Progress</h2>
-        <p className={styles.sub}>
-          Per-country agents are researching in parallel. This may take 20-40 minutes depending on rate limits.
-          You can leave this page — progress is saved automatically.
-        </p>
+      <div className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 className={styles.title}>Step 3 — Research in Progress</h2>
+          <p className={styles.sub}>
+            Per-country agents are researching in parallel. This may take 20-40 minutes depending on rate limits.
+            You can leave this page — progress is saved automatically.
+          </p>
+        </div>
+        <button
+          className="btn btn-ghost btn-sm text-primary"
+          style={{ border: '1px solid var(--border-default)', marginTop: 8 }}
+          onClick={handleRestart}
+          disabled={restarting}
+        >
+          {restarting ? 'Restarting...' : '↻ Restart Research'}
+        </button>
       </div>
 
       {/* Progress bar */}

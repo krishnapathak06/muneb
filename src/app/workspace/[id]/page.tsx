@@ -29,6 +29,8 @@ const STEP_FOR_STATUS: Record<string, number> = {
   done: 4,
 };
 
+const STATUS_FOR_STEP = ['intake', 'sub-issues', 'indicators', 'researching', 'done'];
+
 export default function WorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -50,6 +52,25 @@ export default function WorkspacePage() {
   useEffect(() => {
     refreshWorkspace().finally(() => setLoading(false));
   }, [id]);
+
+  async function handleJumpToStep(targetIndex: number, stepName: string) {
+    if (confirm(`Are you sure you want to go back to the "${stepName}" stage?`)) {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/workspaces/${id}/advance`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: STATUS_FOR_STEP[targetIndex] }),
+        });
+        if (!res.ok) throw new Error('Failed to update stage');
+        await refreshWorkspace();
+      } catch (err) {
+        alert((err as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }
 
   if (loading) {
     return (
@@ -81,17 +102,22 @@ export default function WorkspacePage() {
           </div>
           {/* Step progress */}
           <div className={styles.steps}>
-            {STEPS.map((step, i) => (
-              <div
-                key={step}
-                className={`${styles.step} ${i === currentStep ? styles.stepActive : ''} ${i < currentStep ? styles.stepDone : ''}`}
-              >
-                <div className={styles.stepDot}>
-                  {i < currentStep ? '✓' : i + 1}
+            {STEPS.map((step, i) => {
+              const isPrevious = i < currentStep;
+              return (
+                <div
+                  key={step}
+                  className={`${styles.step} ${i === currentStep ? styles.stepActive : ''} ${isPrevious ? styles.stepDone : ''}`}
+                  style={{ cursor: isPrevious ? 'pointer' : 'default' }}
+                  onClick={() => isPrevious && handleJumpToStep(i, step)}
+                >
+                  <div className={styles.stepDot}>
+                    {isPrevious ? '✓' : i + 1}
+                  </div>
+                  <span className={styles.stepLabel}>{step}</span>
                 </div>
-                <span className={styles.stepLabel}>{step}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </header>

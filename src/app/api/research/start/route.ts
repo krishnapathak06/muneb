@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeWorkspaceFile, updateWorkspace, getWorkspace } from '@/lib/workspace';
+import { writeWorkspaceFile, readWorkspaceFile, updateWorkspace, getWorkspace } from '@/lib/workspace';
 import { orchestrateResearch } from '@/lib/agents/orchestrator';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -8,14 +8,39 @@ const activeJobs = new Map<string, Promise<void>>();
 
 export async function POST(req: NextRequest) {
   try {
-    const { workspaceId, committee, mainAgenda, subIssues, countries } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    let { workspaceId, committee, mainAgenda, subIssues, countries } = body;
 
-    if (!workspaceId || !committee || !mainAgenda || !subIssues || !countries) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!workspaceId) {
+      return NextResponse.json({ error: 'Missing required workspaceId' }, { status: 400 });
     }
 
     const ws = getWorkspace(workspaceId);
     if (!ws) return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+
+    // Auto-load parameters from disk if not provided in the POST request body
+    if (!committee) committee = ws.committee || '';
+    if (!mainAgenda) mainAgenda = ws.agenda || '';
+    if (!subIssues) {
+      try {
+        const agendaData = readWorkspaceFile<{ main_agenda: string; sub_issues: any[] }>(workspaceId, 'agenda.json');
+        subIssues = agendaData?.sub_issues || [];
+      } catch {
+        subIssues = [];
+      }
+    }
+    if (!countries) {
+      try {
+        const countriesList = readWorkspaceFile<{ id: string; name: string }[]>(workspaceId, 'countries.json');
+        countries = countriesList?.map((c) => c.name) || [];
+      } catch {
+        countries = [];
+      }
+    }
+
+    if (!committee || !mainAgenda || !countries || countries.length === 0) {
+      return NextResponse.json({ error: 'Missing required configuration data to run research' }, { status: 400 });
+    }
 
     // Save confirmed agenda data
     const agendaData = { main_agenda: mainAgenda, sub_issues: subIssues };
