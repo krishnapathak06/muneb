@@ -32,6 +32,20 @@ export async function chat(
     max_tokens: opts?.maxTokens ?? 4096,
   });
 
+  if (!response) {
+    throw new Error('Empty response from OpenRouter API');
+  }
+
+  // Handle case where OpenRouter returned a JSON error payload (e.g. overloaded)
+  if ((response as any).error) {
+    const errObj = (response as any).error;
+    throw new Error(`OpenRouter Error ${errObj.code || ''}: ${errObj.message || 'Unknown'}`);
+  }
+
+  if (!response.choices || response.choices.length === 0) {
+    throw new Error('OpenRouter response contains no choices (model may be overloaded or down)');
+  }
+
   const message = response.choices[0]?.message as any;
   const content = message?.content ?? '';
   const annotations = message?.annotations ?? [];
@@ -58,11 +72,17 @@ export async function chatWithRetry(
       return await chat(messages, opts);
     } catch (err: unknown) {
       lastError = err as Error;
-      const isRateLimit =
-        (err as { status?: number })?.status === 429 ||
-        (err instanceof Error && err.message?.includes('rate limit'));
+      
+      const status = (err as { status?: number })?.status;
+      const isPermanent = status === 400 || status === 401 || status === 403;
 
-      if (!isRateLimit && attempt > 1) throw err;
+      if (isPermanent) {
+        throw err;
+      }
+
+      if (attempt === maxRetries - 1) {
+        throw err;
+      }
 
       // Exponential backoff: 2s, 4s, 8s, 16s, 32s
       const delay = Math.pow(2, attempt + 1) * 1000 + Math.random() * 500;
