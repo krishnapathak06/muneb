@@ -92,6 +92,7 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
     return DEFAULT_CARDS;
   });
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+  const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
 
   const saveCards = (newCards: CardConfig[]) => {
     setCards(newCards);
@@ -104,6 +105,7 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
   };
 
   const handleCardDrop = (e: React.DragEvent, targetId: string) => {
+    setDragOverCardId(null);
     if (draggedCardId === null || draggedCardId === targetId) return;
     const newCards = [...cards];
     const sourceIndex = newCards.findIndex((c) => c.id === draggedCardId);
@@ -296,15 +298,26 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
           return (
             <div
               key={card.id}
-              className={`${styles.boardCard} ${draggedCardId === card.id ? styles.cardDragging : ''}`}
+              className={`${styles.boardCard} ${draggedCardId === card.id ? styles.cardDragging : ''} ${dragOverCardId === card.id ? styles.cardDragOver : ''}`}
               style={gridStyle}
-              draggable
-              onDragStart={(e) => handleCardDragStart(e, card.id)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleCardDrop(e, card.id)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (dragOverCardId !== card.id) setDragOverCardId(card.id);
+              }}
+              onDragLeave={() => {
+                if (dragOverCardId === card.id) setDragOverCardId(null);
+              }}
+              onDrop={(e) => {
+                handleCardDrop(e, card.id);
+                setDragOverCardId(null);
+              }}
             >
-              {/* Card Header with drag handle and width controls */}
-              <div className={styles.cardHeader}>
+              {/* Card Header (Draggable trigger only) */}
+              <div
+                className={styles.cardHeader}
+                draggable
+                onDragStart={(e) => handleCardDragStart(e, card.id)}
+              >
                 <h3 className={styles.cardTitle}>{card.title}</h3>
                 <div className={styles.cardControls}>
                   <div className={styles.widthBtnGroup}>

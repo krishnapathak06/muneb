@@ -375,3 +375,12 @@
   flex-direction: column;
 }
 
+.cardDragOver {
+  outline: 2px solid var(--accent-primary) !important;
+  outline-offset: 4px;
+  transform: scale(1.01) translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), outline 0.15s ease, box-shadow 0.15s ease;
+}
+
