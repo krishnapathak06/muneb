@@ -5,19 +5,55 @@ export interface SearchResult {
   rawContent?: string;
 }
 
+const TAVILY_KEYS: string[] = [];
+let currentKeyIndex = 0;
+
+function getTavilyKeys(): string[] {
+  if (TAVILY_KEYS.length > 0) return TAVILY_KEYS;
+
+  const rawKey = process.env.TAVILY_API_KEY;
+  if (rawKey) {
+    const parts = rawKey.split(',').map((k) => k.trim()).filter(Boolean);
+    TAVILY_KEYS.push(...parts);
+  }
+
+  for (let i = 1; i <= 10; i++) {
+    const k = process.env[`TAVILY_API_KEY_${i}`];
+    if (k && !TAVILY_KEYS.includes(k.trim())) {
+      TAVILY_KEYS.push(k.trim());
+    }
+  }
+
+  return TAVILY_KEYS;
+}
+
 export async function searchWeb(query: string): Promise<SearchResult[]> {
-  const tavilyKey = process.env.TAVILY_API_KEY;
-  if (tavilyKey) {
-    console.log(`[Search] Using Tavily Search API for query: "${query}"`);
-    const results = await searchTavily(query, tavilyKey);
-    if (results.length > 0) return results;
+  const keys = getTavilyKeys();
+
+  if (keys.length > 0) {
+    for (let attempt = 0; attempt < keys.length; attempt++) {
+      const activeIdx = (currentKeyIndex + attempt) % keys.length;
+      const apiKey = keys[activeIdx];
+
+      console.log(`[Search] Attempting Tavily Search with Key #${activeIdx + 1} of ${keys.length} for query: "${query}"`);
+      try {
+        const results = await searchTavilyWithStatus(query, apiKey);
+        if (results !== null) {
+          currentKeyIndex = activeIdx;
+          return results;
+        }
+      } catch (err: any) {
+        console.warn(`[Search] Tavily Key #${activeIdx + 1} failed: ${err.message || err}. Trying next...`);
+      }
+    }
+    console.warn('[Search] All Tavily keys failed/exhausted. Falling back to DuckDuckGo.');
   }
 
   console.log(`[Search] Using DuckDuckGo Scraper for query: "${query}"`);
   return await searchDDG(query);
 }
 
-async function searchTavily(query: string, apiKey: string): Promise<SearchResult[]> {
+async function searchTavilyWithStatus(query: string, apiKey: string): Promise<SearchResult[] | null> {
   try {
     const res = await fetch('https://api.tavily.com/search', {
       method: 'POST',
@@ -30,10 +66,30 @@ async function searchTavily(query: string, apiKey: string): Promise<SearchResult
         include_raw_content: true,
       }),
     });
-    if (!res.ok) {
-      console.error(`[Tavily] API Error: ${res.status}`);
-      return [];
+
+    if (res.status === 429) {
+      console.warn(`[Tavily] Key rate limited (429).`);
+      return null;
     }
+
+    if (res.status === 403 || res.status === 402 || res.status === 400) {
+      const text = await res.text();
+      if (
+        text.toLowerCase().includes('limit') ||
+        text.toLowerCase().includes('credit') ||
+        text.toLowerCase().includes('quota') ||
+        text.toLowerCase().includes('exhausted')
+      ) {
+        console.warn(`[Tavily] Key limit hit (${res.status}): ${text}`);
+        return null;
+      }
+    }
+
+    if (!res.ok) {
+      console.error(`[Tavily] HTTP Error: ${res.status}`);
+      return null;
+    }
+
     const data = await res.json();
     return (data.results ?? []).map((r: any) => ({
       url: r.url ?? '',
@@ -42,8 +98,8 @@ async function searchTavily(query: string, apiKey: string): Promise<SearchResult
       rawContent: r.raw_content ?? '',
     }));
   } catch (err) {
-    console.error('[Tavily] Error:', err);
-    return [];
+    console.error('[Tavily] Fetch Exception:', err);
+    return null;
   }
 }
 
