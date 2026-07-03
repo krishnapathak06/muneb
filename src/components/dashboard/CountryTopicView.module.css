@@ -277,10 +277,46 @@
 
 /* Re-orderable Board Grid layout classes */
 .boardGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.boardRowContainer {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: var(--space-4);
-  align-items: start;
+  align-items: stretch;
+  width: 100%;
+}
+
+.rowGapDropLine {
+  height: 12px;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  margin: 4px 0;
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
+  transition: all 0.15s ease;
+}
+.rowGapDropLine::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+.rowGapDropLineActive {
+  height: 24px;
+}
+.rowGapDropLineActive::after {
+  background: var(--accent-primary) !important;
+  box-shadow: 0 0 8px var(--accent-primary);
 }
 
 .boardCard {
