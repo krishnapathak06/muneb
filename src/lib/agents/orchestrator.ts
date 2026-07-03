@@ -16,7 +16,7 @@ export interface OrchestratorProgress {
   };
 }
 
-const MAX_CONCURRENCY = 15; // tripled concurrency for multi-request local Ollama setup
+const MAX_CONCURRENCY = 15; // tripled concurrency for research runs
 
 export async function orchestrateResearch(
   workspaceId: string,
