@@ -384,3 +384,33 @@
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), outline 0.15s ease, box-shadow 0.15s ease;
 }
 
+.rowSpacerDropZone {
+  height: 100%;
+  min-height: 80px;
+  align-self: stretch;
+  border: 2px dashed var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.rowSpacerDropZone:hover {
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+}
+.rowSpacerDropZoneActive {
+  border-color: var(--accent-primary) !important;
+  background: var(--accent-glow) !important;
+  color: var(--accent-primary) !important;
+  transform: scale(1.01);
+}
+
