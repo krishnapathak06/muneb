@@ -125,9 +125,9 @@ export async function chatWithRetry(
         throw err;
       }
 
-      // Exponential backoff: 2s, 4s, 8s, 16s, 32s
-      const delay = Math.pow(2, attempt + 1) * 1000 + Math.random() * 500;
-      console.log(`[OpenRouter] Attempt ${attempt + 1} failed (${(err as Error).message}). Retrying in ${Math.round(delay / 1000)}s...`);
+      // Exponential backoff reduced to 1/4th: 0.5s, 1s, 2s, 4s, 8s
+      const delay = (Math.pow(2, attempt + 1) * 1000 + Math.random() * 500) / 4;
+      console.log(`[OpenRouter] Attempt ${attempt + 1} failed (${(err as Error).message}). Retrying in ${(delay / 1000).toFixed(2)}s...`);
       await new Promise((r) => setTimeout(r, delay));
     }
   }
