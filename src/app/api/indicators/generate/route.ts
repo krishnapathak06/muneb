@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
   try {
-    const { workspaceId, mainAgenda, subIssues } = await req.json();
+    const { workspaceId, mainAgenda, subIssues, bgText } = await req.json();
 
     if (!workspaceId || !mainAgenda || !subIssues) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -18,14 +18,21 @@ export async function POST(req: NextRequest) {
 
     const indicatorsData: Record<string, { id: string; label: string; description: string }[]> = {};
 
+    let contextPrompt = '';
+    if (bgText) {
+      contextPrompt = `To make the proposed indicators highly tailored to this specific committee, here is the background guide text for context:\n---\n${bgText.slice(0, 15000)}\n---\n\n`;
+    }
+
     // 1. Generate for Main Agenda
     console.log(`[Indicators] Generating main agenda indicators for workspace ${workspaceId}`);
-    const mainPrompt = `Based on this topic — "${mainAgenda}" (Main Agenda) — within the context of the agenda "${mainAgenda}", propose exactly 8 specific, concrete indicators that would be useful to compare across countries on this topic.
+    const mainPrompt = `Based on the committee's main agenda topic: "${mainAgenda}"
+
+${contextPrompt}Please propose exactly 8 specific, concrete comparative indicators to evaluate across countries for this main agenda.
 
 Requirements:
-- Each indicator must be a specific, well-defined data point or comparison axis (e.g. "Defense Spending (% of GDP)", "Ratification Status of [Relevant Treaty]", "Number of Bilateral Security Agreements") — not vague categories.
-- Indicators should be things that could plausibly be found or estimated via research for most countries in this committee, though not all will have data for every indicator.
-- Avoid indicators that only apply to a handful of major powers — bias toward things broadly comparable across a diverse country list.
+- Each indicator must be a specific, well-defined comparative metric or policy axis relevant to the committee and the background guide (e.g. "Defense Spending (% of GDP)", "Ratification Status of [Relevant Treaty]", "Specific legislative bans on [X]") — not vague categories.
+- Ground the indicators in the context and terms of the provided background guide.
+- Indicators should be researchable for most countries in the committee.
 
 Return a JSON array with EXACTLY this structure, without markdown backticks:
 [
@@ -47,7 +54,6 @@ Return a JSON array with EXACTLY this structure, without markdown backticks:
       }));
     } catch (e) {
       console.error('[Indicators] Failed to parse main agenda indicators:', e, mainRes.content);
-      // Fallback indicators
       indicatorsData['main'] = Array.from({ length: 8 }).map((_, i) => ({
         id: uuidv4(),
         label: `General Indicator ${i + 1}`,
@@ -58,12 +64,14 @@ Return a JSON array with EXACTLY this structure, without markdown backticks:
     // 2. Generate for each Sub-Issue
     for (const si of subIssues) {
       console.log(`[Indicators] Generating indicators for sub-issue: ${si.title}`);
-      const subPrompt = `Based on this topic — "${si.title}: ${si.description}" — within the context of the agenda "${mainAgenda}", propose exactly 8 specific, concrete indicators that would be useful to compare across countries on this topic.
+      const subPrompt = `Based on this sub-issue: "${si.title}: ${si.description}" — within the context of the agenda "${mainAgenda}".
+
+${contextPrompt}Please propose exactly 8 specific, concrete comparative indicators to evaluate across countries for this sub-issue.
 
 Requirements:
-- Each indicator must be a specific, well-defined data point or comparison axis (e.g. "Defense Spending (% of GDP)", "Ratification Status of [Relevant Treaty]", "Number of Bilateral Security Agreements") — not vague categories.
-- Indicators should be things that could plausibly be found or estimated via research for most countries in this committee, though not all will have data for every indicator.
-- Avoid indicators that only apply to a handful of major powers — bias toward things broadly comparable across a diverse country list.
+- Each indicator must be a specific, well-defined comparative metric or policy axis relevant to the committee and the background guide (e.g. "Defense Spending (% of GDP)", "Ratification Status of [Relevant Treaty]", "Specific legislative bans on [X]") — not vague categories.
+- Ground the indicators in the context and terms of the provided background guide.
+- Indicators should be researchable for most countries in the committee.
 
 Return a JSON array with EXACTLY this structure, without markdown backticks:
 [

@@ -88,6 +88,7 @@ export default function SubIssueStep({
           workspaceId,
           mainAgenda,
           subIssues,
+          bgText,
         }),
       });
       const dataGen = await resGen.json();
