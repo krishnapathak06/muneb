@@ -82,7 +82,7 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
       .finally(() => setLoading(false));
 
     // 2. Fetch indicators definitions
-    fetch(`/api/workspace-data/${workspaceId}/indicators.json`)
+    fetch(`/api/workspace-data/${workspaceId}/indicators`)
       .then((r) => r.json())
       .then((d) => {
         const list = d ? d[topicKey] || [] : [];
