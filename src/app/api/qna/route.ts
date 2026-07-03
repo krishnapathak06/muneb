@@ -49,13 +49,125 @@ function loadCountryResearch(workspaceId: string, countryId: string, topicFile: 
   if (!fs.existsSync(filePath)) return '';
   try {
     const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    return [
-      data.stance_summary ?? '',
-      ...(data.stats ?? []),
-      ...(data.controversies ?? []),
-    ].join('\n');
+    const parts = [
+      `Summary: ${data.stance_summary ?? ''}`,
+      `Stats: ${(data.stats ?? []).join('; ')}`,
+      `Controversies: ${(data.controversies ?? []).join('; ')}`,
+      `Questions: ${(data.questions ?? []).join('; ')}`,
+      `Allies: ${(data.allies ?? []).join(', ')}`,
+      `Adversaries: ${(data.adversaries ?? []).join(', ')}`,
+      `Recent Shifts: ${data.recent_shifts ?? ''}`
+    ];
+    
+    if (data.indicator_values && Array.isArray(data.indicator_values)) {
+      const indParts = data.indicator_values.map((val: any) => `${val.indicatorId}: ${val.value || val.status}`);
+      if (indParts.length > 0) parts.push(`Indicators: ${indParts.join('; ')}`);
+    }
+
+    return parts.join('\n');
   } catch {
     return '';
+  }
+}
+
+function loadRawSourceText(
+  workspaceId: string,
+  countryId: string,
+  topicFile: string,
+  maxSourcesPerTopic = 3
+): { text: string; sourceCount: number } {
+  const topicPath = path.join(process.cwd(), 'workspaces', workspaceId, 'research', countryId, topicFile);
+  if (!fs.existsSync(topicPath)) {
+    return { text: '', sourceCount: 0 };
+  }
+
+  try {
+    const topicData = JSON.parse(fs.readFileSync(topicPath, 'utf-8'));
+    
+    // 1. Gather all synthesis fields
+    const synthesisParts = [
+      `Summary: ${topicData.stance_summary ?? ''}`,
+      `Statistics: ${(topicData.stats ?? []).join('; ')}`,
+      `Controversies: ${(topicData.controversies ?? []).join('; ')}`,
+      `Questions: ${(topicData.questions ?? []).join('; ')}`,
+      `Allies: ${(topicData.allies ?? []).join(', ')}`,
+      `Adversaries: ${(topicData.adversaries ?? []).join(', ')}`,
+      `Recent Shifts: ${topicData.recent_shifts ?? ''}`
+    ];
+
+    if (topicData.indicator_values && Array.isArray(topicData.indicator_values)) {
+      const indicatorsPath = path.join(process.cwd(), 'workspaces', workspaceId, 'indicators.json');
+      let labelMap: Record<string, string> = {};
+      if (fs.existsSync(indicatorsPath)) {
+        try {
+          const indicatorsData = JSON.parse(fs.readFileSync(indicatorsPath, 'utf-8'));
+          for (const list of Object.values(indicatorsData)) {
+            if (Array.isArray(list)) {
+              for (const ind of list) {
+                if (ind && ind.id && ind.label) {
+                  labelMap[ind.id] = ind.label;
+                }
+              }
+            }
+          }
+        } catch {}
+      }
+
+      const indParts = topicData.indicator_values.map((val: any) => {
+        const label = labelMap[val.indicatorId] || val.indicatorId;
+        const statusLabel = val.status === 'not_applicable' ? 'N/A' : (val.status === 'insufficient_sourcing' ? 'Insufficient sourcing' : val.value);
+        return `${label}: ${statusLabel}`;
+      });
+      if (indParts.length > 0) {
+        synthesisParts.push(`Indicators: ${indParts.join('; ')}`);
+      }
+    }
+
+    const synthesisText = synthesisParts.join('\n');
+
+    // 2. Gather verified sources from this topic data
+    const topicSources = (topicData.sources ?? []) as any[];
+    const verifiedSources = topicSources.filter((s) => s.verified);
+
+    // Sort by credibility_tier ascending (tier 1 first)
+    verifiedSources.sort((a, b) => (a.credibility_tier || 3) - (b.credibility_tier || 3));
+
+    // Limit to top maxSourcesPerTopic
+    const selectedSources = verifiedSources.slice(0, maxSourcesPerTopic);
+
+    // 3. Read raw .txt files from raw_sources/
+    const rawDir = path.join(process.cwd(), 'workspaces', workspaceId, 'research', countryId, 'raw_sources');
+    const sourceTexts: string[] = [];
+
+    for (const src of selectedSources) {
+      const safeTitle = (src.title || 'source')
+        .replace(/[^a-z0-9]/gi, '_')
+        .replace(/_+/g, '_')
+        .slice(0, 50);
+      const filename = `${safeTitle}.txt`;
+      const filePath = path.join(rawDir, filename);
+
+      if (fs.existsSync(filePath)) {
+        try {
+          let rawText = fs.readFileSync(filePath, 'utf-8');
+          // Truncate to roughly 1500 tokens (approx 6000 characters)
+          if (rawText.length > 6000) {
+            rawText = rawText.slice(0, 6000) + '... [TRUNCATED]';
+          }
+          sourceTexts.push(`Source: ${src.title}\nURL: ${src.url}\nContent:\n${rawText}`);
+        } catch {}
+      }
+    }
+
+    let combinedText = `=== SYNTHESIS ===\n${synthesisText}`;
+    if (sourceTexts.length > 0) {
+      combinedText += `\n\n=== RAW SOURCES ===\n${sourceTexts.join('\n\n')}`;
+    }
+
+    return { text: combinedText, sourceCount: selectedSources.length };
+  } catch (e) {
+    console.error('[loadRawSourceText] error:', e);
+    return { text: '', sourceCount: 0 };
   }
 }
 
@@ -108,6 +220,50 @@ Return ONLY a JSON array of strings (e.g. ["mexico", "usa"]). Do not add explana
   return allCountries.filter((c) => lower.includes(c.name.toLowerCase()));
 }
 
+async function classifyTargetSubIssues(
+  question: string,
+  subIssues: { id: string; title: string; description: string }[]
+): Promise<{ id: string; title: string }[]> {
+  if (subIssues.length === 0) return [];
+  try {
+    const subIssueListStr = subIssues.map((si) => `${si.id}:${si.title} — ${si.description}`).join('\n');
+    const systemPrompt = `You are a helper that identifies which sub-issues are referenced in a user's question about a Model UN committee.
+Given a question and a list of available sub-issues in the format "id:Title — Description", return a JSON array containing only the sub-issue IDs that the question is specifically and directly about.
+If the question is general or not about any specific sub-issues, return an empty array [].
+
+Available sub-issues:
+${subIssueListStr}
+
+Return ONLY a JSON array of strings (e.g. ["subissue-uuid-1", "subissue-uuid-2"]). Do not add explanation or markdown code blocks.`;
+
+    const response = await callOllama([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: question }
+    ]);
+
+    let matchedIds: string[] = [];
+    try {
+      matchedIds = JSON.parse(response.trim());
+    } catch {
+      const match = response.match(/\[[\s\S]*\]/);
+      if (match) matchedIds = JSON.parse(match[0]);
+    }
+
+    if (Array.isArray(matchedIds)) {
+      const matchedSet = new Set(matchedIds.map((id) => String(id).toLowerCase().trim()));
+      return subIssues
+        .filter((si) => matchedSet.has(si.id.toLowerCase().trim()))
+        .map((si) => ({ id: si.id, title: si.title }));
+    }
+  } catch (err) {
+    console.error('[classifyTargetSubIssues] error', err);
+  }
+  const lower = question.toLowerCase();
+  return subIssues
+    .filter((si) => lower.includes(si.title.toLowerCase()))
+    .map((si) => ({ id: si.id, title: si.title }));
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { workspaceId, question } = await req.json();
@@ -119,42 +275,50 @@ export async function POST(req: NextRequest) {
       readWorkspaceFile(workspaceId, 'countries.json') ?? [];
     const agendaData = readWorkspaceFile<{
       main_agenda: string;
-      sub_issues: { id: string; title: string }[];
+      sub_issues: { id: string; title: string; description: string }[];
     }>(workspaceId, 'agenda.json');
     const session: Session =
       readWorkspaceFile(workspaceId, 'qna/session.json') ?? { messages: [] };
 
-    // Classification: which countries does this question target?
-    const targeted = await classifyTargetCountries(question, countries);
-    const isBroadQuery = targeted.length === 0 || targeted.length > 3;
+    const targetedCountries = await classifyTargetCountries(question, countries);
+    const targetedSubIssues = await classifyTargetSubIssues(question, agendaData?.sub_issues ?? []);
+
+    let isBroadQuery = targetedCountries.length === 0 || targetedCountries.length > 3;
+    let fallbackDueToCap = false;
+
+    if (!isBroadQuery) {
+      const combos = targetedCountries.length * (1 + targetedSubIssues.length);
+      if (combos > 6) {
+        isBroadQuery = true;
+        fallbackDueToCap = true;
+        console.log(`[QnA] Targeted combos count is ${combos} (exceeds threshold of 6). Falling back to broad synthesis path.`);
+      }
+    }
 
     let context = '';
     const citations: string[] = [];
 
     if (isBroadQuery) {
-      // Broad: load stance summaries only (not full source chunks)
+      const suffix = fallbackDueToCap ? ' (summary only — combos limit exceeded)' : ' (summary only — broad query)';
       for (const country of countries.slice(0, 20)) {
         const summary = loadCountryResearch(workspaceId, country.id, 'main_agenda.json');
         if (summary) {
-          context += `\n\n=== ${country.name} — Main Agenda ===\n${summary.slice(0, 400)}`;
-          citations.push(`${country.name} — Main Agenda`);
+          context += `\n\n=== ${country.name} — Main Agenda ===\n${summary.slice(0, 500)}`;
+          citations.push(`${country.name} — Main Agenda${suffix}`);
         }
       }
     } else {
-      // Targeted: load full research for those countries
-      for (const country of targeted) {
-        const main = loadCountryResearch(workspaceId, country.id, 'main_agenda.json');
-        if (main) {
-          context += `\n\n=== ${country.name} — Main Agenda ===\n${main}`;
-          citations.push(`${country.name} — Main Agenda`);
+      for (const country of targetedCountries) {
+        const mainRaw = loadRawSourceText(workspaceId, country.id, 'main_agenda.json');
+        if (mainRaw.text) {
+          context += `\n\n=== ${country.name} — Main Agenda ===\n${mainRaw.text}`;
+          citations.push(`${country.name} — Main Agenda (${mainRaw.sourceCount} sources)`);
         }
-        for (const sub of agendaData?.sub_issues ?? []) {
-          const subResearch = loadCountryResearch(
-            workspaceId, country.id, `subissue_${sub.id}.json`
-          );
-          if (subResearch) {
-            context += `\n\n=== ${country.name} — ${sub.title} ===\n${subResearch}`;
-            citations.push(`${country.name} — ${sub.title}`);
+        for (const sub of targetedSubIssues) {
+          const subRaw = loadRawSourceText(workspaceId, country.id, `subissue_${sub.id}.json`);
+          if (subRaw.text) {
+            context += `\n\n=== ${country.name} — ${sub.title} ===\n${subRaw.text}`;
+            citations.push(`${country.name} — ${sub.title} (${subRaw.sourceCount} sources)`);
           }
         }
       }
