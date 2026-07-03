@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readWorkspaceFile, writeWorkspaceFile } from '@/lib/workspace';
+import { chatWithRetry, MODEL } from '@/lib/openrouter';
 import fs from 'fs';
 import path from 'path';
 
@@ -42,6 +43,23 @@ async function callOllama(messages: OllamaMessage[]): Promise<string> {
 
   const data = await res.json();
   return data.message?.content ?? '';
+}
+
+async function callAIModel(messages: OllamaMessage[]): Promise<string> {
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      console.log(`[QnA] Attempting OpenRouter call with model: ${MODEL}`);
+      const res = await chatWithRetry(messages as any, { temperature: 0.2 });
+      return res.content;
+    } catch (err: any) {
+      const errMsg = err.message || '';
+      console.warn(`[QnA] OpenRouter call failed: ${errMsg}. Falling back to local Ollama model.`);
+    }
+  } else {
+    console.log('[QnA] OPENROUTER_API_KEY not configured. Falling back to local Ollama model.');
+  }
+
+  return await callOllama(messages);
 }
 
 function loadCountryResearch(workspaceId: string, countryId: string, topicFile: string): string {
@@ -187,7 +205,7 @@ ${countryListStr}
 
 Return ONLY a JSON array of strings (e.g. ["mexico", "usa"]). Do not add explanation or markdown code blocks.`;
 
-    const response = await callOllama([
+    const response = await callAIModel([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: question }
     ]);
@@ -228,7 +246,7 @@ ${subIssueListStr}
 
 Return ONLY a JSON array of strings (e.g. ["subissue-uuid-1", "subissue-uuid-2"]). Do not add explanation or markdown code blocks.`;
 
-    const response = await callOllama([
+    const response = await callAIModel([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: question }
     ]);
@@ -337,7 +355,7 @@ ${context || 'No research data available for this query.'}`;
       content: m.content,
     }));
 
-    const responseText = await callOllama([
+    const responseText = await callAIModel([
       { role: 'system', content: systemPrompt },
       ...historyMessages,
       { role: 'user', content: question },
