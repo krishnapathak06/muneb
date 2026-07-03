@@ -113,7 +113,8 @@ export function extractIntakeData(text: string): ParsedIntake {
 }
 
 export async function parseXlsx(buffer: Buffer): Promise<string[]> {
-  const XLSX = (await import('xlsx')).default;
+  const xlsxModule = await import('xlsx') as any;
+  const XLSX = xlsxModule.read ? xlsxModule : (xlsxModule.default || xlsxModule);
   const wb = XLSX.read(buffer, { type: 'buffer' });
   const countries: string[] = [];
   for (const sheetName of wb.SheetNames) {
