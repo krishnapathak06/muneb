@@ -648,9 +648,7 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
                   onDrop={(e) => {
                     handleCardDropOnSpacer(e, rowIndex, remaining);
                   }}
-                >
-                  <span>Drop to fit empty row space (+{Math.round(remaining * 8.33)}%)</span>
-                </div>
+                />
               )}
             </React.Fragment>
           );
