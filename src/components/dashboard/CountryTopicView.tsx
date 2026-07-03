@@ -53,12 +53,17 @@ const TIER_CLASS: Record<number, string> = { 1: 'badge-green', 2: 'badge-blue', 
 interface CardConfig {
   id: string;
   title: string;
+}
+
+interface BoardColumn {
+  id: string;
   width: number;
+  cards: CardConfig[];
 }
 
 interface BoardRow {
   id: string;
-  cards: CardConfig[];
+  columns: BoardColumn[];
 }
 
 interface BoardLayout {
@@ -67,23 +72,75 @@ interface BoardLayout {
 
 const DEFAULT_LAYOUT: BoardLayout = {
   rows: [
-    { id: 'row-stance', cards: [{ id: 'stance', title: '📌 Stance Summary', width: 12 }] },
-    { id: 'row-indicators', cards: [{ id: 'indicators', title: '📊 Topic Indicators', width: 12 }] },
     {
-      id: 'row-stats-controversies',
-      cards: [
-        { id: 'stats', title: '📊 Key Statistics & Data Points', width: 6 },
-        { id: 'controversies', title: '⚡ Recent Controversies & Developments', width: 6 }
+      id: 'row-stance',
+      columns: [
+        {
+          id: 'col-stance',
+          width: 12,
+          cards: [{ id: 'stance', title: '📌 Stance Summary' }]
+        }
       ]
     },
-    { id: 'row-questions', cards: [{ id: 'questions', title: '❓ Sharp Committee Questions', width: 12 }] },
-    { id: 'row-alliances', cards: [{ id: 'alliances', title: '🤝 Alliances & Tensions', width: 12 }] },
-    { id: 'row-sources', cards: [{ id: 'sources', title: '📚 Sources', width: 12 }] }
+    {
+      id: 'row-indicators',
+      columns: [
+        {
+          id: 'col-indicators',
+          width: 12,
+          cards: [{ id: 'indicators', title: '📊 Topic Indicators' }]
+        }
+      ]
+    },
+    {
+      id: 'row-split-1',
+      columns: [
+        {
+          id: 'col-left-1',
+          width: 6,
+          cards: [{ id: 'stats', title: '📊 Key Statistics & Data Points' }]
+        },
+        {
+          id: 'col-right-1',
+          width: 6,
+          cards: [{ id: 'controversies', title: '⚡ Recent Controversies & Developments' }]
+        }
+      ]
+    },
+    {
+      id: 'row-questions',
+      columns: [
+        {
+          id: 'col-questions',
+          width: 12,
+          cards: [{ id: 'questions', title: '❓ Sharp Committee Questions' }]
+        }
+      ]
+    },
+    {
+      id: 'row-alliances',
+      columns: [
+        {
+          id: 'col-alliances',
+          width: 12,
+          cards: [{ id: 'alliances', title: '🤝 Alliances & Tensions' }]
+        }
+      ]
+    },
+    {
+      id: 'row-sources',
+      columns: [
+        {
+          id: 'col-sources',
+          width: 12,
+          cards: [{ id: 'sources', title: '📚 Sources' }]
+        }
+      ]
+    }
   ]
 };
 
-function partitionIntoRows(visibleCards: CardConfig[]) {
-  // Not used anymore as we store boardLayout.rows explicitly, but kept for type compatibility
+function partitionIntoRows(visibleCards: any[]) {
   return [visibleCards];
 }
 
@@ -103,7 +160,7 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
   // Research Board Kanban Layout state
   const [boardLayout, setBoardLayout] = useState<BoardLayout>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('mun_research_board_layout_v2');
+      const saved = localStorage.getItem('mun_research_board_layout_v3');
       if (saved) {
         try {
           return JSON.parse(saved);
@@ -120,15 +177,18 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
 
   const saveBoardLayout = (newLayout: BoardLayout) => {
     setBoardLayout(newLayout);
-    localStorage.setItem('mun_research_board_layout_v2', JSON.stringify(newLayout));
+    localStorage.setItem('mun_research_board_layout_v3', JSON.stringify(newLayout));
   };
 
   const findCard = (cardId: string) => {
     for (let rIdx = 0; rIdx < boardLayout.rows.length; rIdx++) {
       const row = boardLayout.rows[rIdx];
-      const cIdx = row.cards.findIndex((c) => c.id === cardId);
-      if (cIdx >= 0) {
-        return { rowIndex: rIdx, cardIndex: cIdx, card: row.cards[cIdx] };
+      for (let cIdx = 0; cIdx < row.columns.length; cIdx++) {
+        const col = row.columns[cIdx];
+        const cardIdx = col.cards.findIndex((c) => c.id === cardId);
+        if (cardIdx >= 0) {
+          return { rowIndex: rIdx, columnIndex: cIdx, cardIndex: cardIdx, card: col.cards[cardIdx] };
+        }
       }
     }
     return null;
@@ -149,36 +209,60 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
 
     const newRows = boardLayout.rows.map((row) => ({
       ...row,
-      cards: [...row.cards],
+      columns: row.columns.map((col) => ({
+        ...col,
+        cards: [...col.cards],
+      })),
     }));
 
     // Remove source card
-    const [movedCard] = newRows[source.rowIndex].cards.splice(source.cardIndex, 1);
+    const [movedCard] = newRows[source.rowIndex].columns[source.columnIndex].cards.splice(source.cardIndex, 1);
 
-    // Insert source card into target row before target card
-    newRows[target.rowIndex].cards.splice(target.cardIndex, 0, movedCard);
+    // Insert target card into target column before target card
+    newRows[target.rowIndex].columns[target.columnIndex].cards.splice(target.cardIndex, 0, movedCard);
 
-    // Fit if row width sum exceeds 12
-    const targetRowCards = newRows[target.rowIndex].cards;
-    const sumOtherWidths = targetRowCards.reduce((sum, c) => c.id === draggedCardId ? sum : sum + c.width, 0);
-    if (sumOtherWidths + movedCard.width > 12) {
-      const remainingSpace = 12 - sumOtherWidths;
-      if (remainingSpace >= 3) {
-        movedCard.width = remainingSpace;
-      } else {
-        // Move to a new row below the target row
-        const newRow = {
-          id: `row-auto-${Date.now()}`,
-          cards: [movedCard],
-        };
-        newRows.splice(target.rowIndex + 1, 0, newRow);
-        // remove from target row
-        newRows[target.rowIndex].cards = targetRowCards.filter(c => c.id !== draggedCardId);
-      }
-    }
+    // Clean up empty columns/rows
+    const cleanedRows = newRows
+      .map((row) => ({
+        ...row,
+        columns: row.columns.filter((col) => col.cards.length > 0),
+      }))
+      .filter((row) => row.columns.length > 0);
 
-    // Clean up empty rows
-    const cleanedRows = newRows.filter((r) => r.cards.length > 0);
+    saveBoardLayout({ rows: cleanedRows });
+    setDraggedCardId(null);
+  };
+
+  const handleCardDropOnColumn = (e: React.DragEvent, targetRowIndex: number, targetColumnIndex: number) => {
+    if (draggedCardId === null) return;
+    const source = findCard(draggedCardId);
+    if (!source) return;
+
+    // If dropping onto the same column, do nothing
+    if (source.rowIndex === targetRowIndex && source.columnIndex === targetColumnIndex) return;
+
+    const newRows = boardLayout.rows.map((row) => ({
+      ...row,
+      columns: row.columns.map((col) => ({
+        ...col,
+        cards: [...col.cards],
+      })),
+    }));
+
+    // Remove source card
+    const [movedCard] = newRows[source.rowIndex].columns[source.columnIndex].cards.splice(source.cardIndex, 1);
+
+    // Append to target column
+    newRows[targetRowIndex].columns[targetColumnIndex].cards.push(movedCard);
+
+    // Clean up empty columns/rows
+    const cleanedRows = newRows
+      .map((row) => ({
+        ...row,
+        columns: row.columns.filter((col) => col.cards.length > 0),
+      }))
+      .filter((row) => row.columns.length > 0);
+
     saveBoardLayout({ rows: cleanedRows });
     setDraggedCardId(null);
   };
@@ -192,24 +276,35 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
 
     const newRows = boardLayout.rows.map((row) => ({
       ...row,
-      cards: [...row.cards],
+      columns: row.columns.map((col) => ({
+        ...col,
+        cards: [...col.cards],
+      })),
     }));
 
     // Remove source card
-    const [movedCard] = newRows[source.rowIndex].cards.splice(source.cardIndex, 1);
+    const [movedCard] = newRows[source.rowIndex].columns[source.columnIndex].cards.splice(source.cardIndex, 1);
 
     // Find target row index
     const targetRowIdx = newRows.findIndex((r) => r.id === targetRowId);
     if (targetRowIdx < 0) return;
 
-    // Set width to remaining space
-    movedCard.width = remaining;
+    // Create new column at the end of the row
+    const newCol = {
+      id: `col-new-${Date.now()}`,
+      width: remaining,
+      cards: [movedCard],
+    };
+    newRows[targetRowIdx].columns.push(newCol);
 
-    // Add to target row
-    newRows[targetRowIdx].cards.push(movedCard);
+    // Clean up empty columns/rows
+    const cleanedRows = newRows
+      .map((row) => ({
+        ...row,
+        columns: row.columns.filter((col) => col.cards.length > 0),
+      }))
+      .filter((row) => row.columns.length > 0);
 
-    // Clean up empty rows
-    const cleanedRows = newRows.filter((r) => r.cards.length > 0);
     saveBoardLayout({ rows: cleanedRows });
     setDraggedCardId(null);
   };
@@ -223,31 +318,45 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
 
     const newRows = boardLayout.rows.map((row) => ({
       ...row,
-      cards: [...row.cards],
+      columns: row.columns.map((col) => ({
+        ...col,
+        cards: [...col.cards],
+      })),
     }));
 
     // Remove source card
-    const [movedCard] = newRows[source.rowIndex].cards.splice(source.cardIndex, 1);
+    const [movedCard] = newRows[source.rowIndex].columns[source.columnIndex].cards.splice(source.cardIndex, 1);
 
-    // Create a new row for this card
+    // Create a new row with column width 12
     const newRow = {
       id: `row-user-${Date.now()}`,
-      cards: [movedCard],
+      columns: [
+        {
+          id: `col-user-${Date.now()}`,
+          width: 12,
+          cards: [movedCard],
+        }
+      ]
     };
 
-    // Insert new row at targetLineIndex
     newRows.splice(targetLineIndex, 0, newRow);
 
-    // Clean up empty rows
-    const cleanedRows = newRows.filter((r) => r.cards.length > 0);
+    // Clean up empty columns/rows
+    const cleanedRows = newRows
+      .map((row) => ({
+        ...row,
+        columns: row.columns.filter((col) => col.cards.length > 0),
+      }))
+      .filter((row) => row.columns.length > 0);
+
     saveBoardLayout({ rows: cleanedRows });
     setDraggedCardId(null);
   };
 
-  const changeCardWidth = (cardId: string, newWidth: number) => {
+  const changeColumnWidth = (columnId: string, newWidth: number) => {
     const newRows = boardLayout.rows.map((row) => ({
       ...row,
-      cards: row.cards.map((c) => (c.id === cardId ? { ...c, width: newWidth } : c)),
+      columns: row.columns.map((col) => (col.id === columnId ? { ...col, width: newWidth } : col)),
     }));
     saveBoardLayout({ rows: newRows });
   };
@@ -386,22 +495,31 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
 
   const isInsufficient = data.stance_summary.includes('insufficient sourcing');
 
-  // Filter visible cards based on actual data presence and rows structure
+  // Filter visible cards based on actual data presence and columns structure
   const visibleRows = boardLayout.rows
     .map((row) => {
-      const visibleCardsInRow = row.cards.filter((card) => {
-        if (card.id === 'indicators') return sortedIndicators.length > 0;
-        if (card.id === 'stats') return data.stats && data.stats.length > 0;
-        if (card.id === 'controversies') return data.controversies && data.controversies.length > 0;
-        if (card.id === 'questions') return data.questions && data.questions.length > 0;
-        return true;
-      });
+      const visibleColumns = row.columns
+        .map((col) => {
+          const visibleCards = col.cards.filter((card) => {
+            if (card.id === 'indicators') return sortedIndicators.length > 0;
+            if (card.id === 'stats') return data.stats && data.stats.length > 0;
+            if (card.id === 'controversies') return data.controversies && data.controversies.length > 0;
+            if (card.id === 'questions') return data.questions && data.questions.length > 0;
+            return true;
+          });
+          return {
+            ...col,
+            cards: visibleCards,
+          };
+        })
+        .filter((col) => col.cards.length > 0);
+
       return {
         ...row,
-        cards: visibleCardsInRow,
+        columns: visibleColumns,
       };
     })
-    .filter((row) => row.cards.length > 0);
+    .filter((row) => row.columns.length > 0);
 
   return (
     <div className={`${styles.view} animate-fade-in`}>
@@ -428,7 +546,7 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
       {/* Grid-based Kanban Board container */}
       <div className={styles.boardGrid}>
         {visibleRows.map((row, rowIndex) => {
-          const rowSum = row.cards.reduce((sum, c) => sum + c.width, 0);
+          const rowSum = row.columns.reduce((sum, col) => sum + col.width, 0);
           const remaining = 12 - rowSum;
 
           return (
@@ -450,278 +568,294 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
 
               {/* Row Cards Container */}
               <div className={styles.boardRowContainer}>
-                {row.cards.map((card) => {
+                {row.columns.map((col, colIndex) => {
                   const gridStyle = {
-                    gridColumn: `span ${card.width}`,
+                    gridColumn: `span ${col.width}`,
                   };
 
                   return (
                     <div
-                      key={card.id}
-                      className={`${styles.boardCard} ${draggedCardId === card.id ? styles.cardDragging : ''} ${dragOverCardId === card.id ? styles.cardDragOver : ''}`}
+                      key={col.id}
+                      className={styles.boardColumn}
                       style={gridStyle}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        if (dragOverCardId !== card.id) setDragOverCardId(card.id);
-                      }}
-                      onDragLeave={() => {
-                        if (dragOverCardId === card.id) setDragOverCardId(null);
-                      }}
+                      onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
-                        handleCardDrop(e, card.id);
-                        setDragOverCardId(null);
+                        handleCardDropOnColumn(e, rowIndex, colIndex);
                       }}
                     >
-                      {/* Card Header (Draggable trigger only) */}
-                      <div
-                        className={styles.cardHeader}
-                        draggable
-                        onDragStart={(e) => handleCardDragStart(e, card.id)}
-                      >
-                        <h3 className={styles.cardTitle}>{card.title}</h3>
-                        <div className={styles.cardControls}>
-                          <div className={styles.widthBtnGroup}>
-                            {([3, 4, 6, 8, 12] as const).map((w) => {
-                              const label = w === 3 ? '25%' : w === 4 ? '33%' : w === 6 ? '50%' : w === 8 ? '66%' : '100%';
-                              return (
-                                <button
-                                  key={w}
-                                  type="button"
-                                  className={`${styles.widthBtn} ${card.width === w ? styles.widthBtnActive : ''}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    changeCardWidth(card.id, w);
-                                  }}
-                                  title={`Set width to ${label}`}
-                                >
-                                  {label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <span className={styles.cardDragHandle} title="Drag header to reorder">☰</span>
+                      {/* Column Header (Width control pill) */}
+                      <div className={styles.columnHeader}>
+                        <div className={styles.widthBtnGroup}>
+                          {([3, 4, 6, 8, 12] as const).map((w) => {
+                            const label = w === 3 ? '25%' : w === 4 ? '33%' : w === 6 ? '50%' : w === 8 ? '66%' : '100%';
+                            return (
+                              <button
+                                key={w}
+                                type="button"
+                                className={`${styles.widthBtn} ${col.width === w ? styles.widthBtnActive : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  changeColumnWidth(col.id, w);
+                                }}
+                                title={`Set column width to ${label}`}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 
-                      {/* Card Body */}
-                      <div className={styles.cardBody}>
-                        {card.id === 'stance' && (
-                          <p className={styles.prose}>{data.stance_summary}</p>
-                        )}
-
-                        {card.id === 'indicators' && (
-                          <div className={styles.indicatorsWrapper}>
-                            <div className={styles.indicatorsHeader} style={{ padding: '0 0 12px 0', borderBottom: '1px solid var(--border-subtle)', marginBottom: 12 }}>
-                              <div className={styles.indicatorControls}>
-                                <button
-                                  className={`btn btn-ghost btn-sm ${isEditingLayout ? 'text-primary' : ''}`}
-                                  style={{ fontSize: 12, padding: '4px 8px' }}
-                                  onClick={() => setIsEditingLayout(!isEditingLayout)}
-                                >
-                                  ⚙️ {isEditingLayout ? 'Exit Layout Edit' : 'Edit Layout'}
-                                </button>
-                                <label className={styles.checkboxLabel} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={showNA}
-                                    onChange={(e) => setShowNA(e.target.checked)}
-                                  />
-                                  Show N/A Indicators
-                                </label>
-                              </div>
-                            </div>
-
-                            <div className={styles.indicatorsGrid}>
-                              {sortedIndicators.map((ind, idx) => {
-                                const val = (data?.indicator_values || []).find((v: any) => v.indicatorId === ind.id) || {
-                                  value: null,
-                                  status: 'insufficient_sourcing' as const,
-                                  verified: false,
-                                };
-
-                                if (!ind.visible && !isEditingLayout) return null;
-
-                                const isNA = val.status === 'not_applicable';
-                                if (isNA && !showNA && !isEditingLayout) return null;
-
-                                let cardClass = styles.indicatorCard;
-                                let statusLabel = 'Found';
-                                if (val.status === 'insufficient_sourcing') {
-                                  cardClass = `${styles.indicatorCard} ${styles.indicatorCardSourcing}`;
-                                  statusLabel = 'No verified data';
-                                } else if (isNA) {
-                                  cardClass = `${styles.indicatorCard} ${styles.indicatorCardNA}`;
-                                  statusLabel = 'Not Applicable';
-                                }
-
-                                if (isEditingLayout && !ind.visible) {
-                                  cardClass = `${cardClass} ${styles.indicatorCardHidden}`;
-                                }
-
-                                return (
-                                  <div
-                                    key={ind.id}
-                                    className={cardClass}
-                                    draggable={isEditingLayout}
-                                    onDragStart={(e) => handleDragStart(e, idx)}
-                                    onDragOver={(e) => e.preventDefault()}
-                                    onDrop={(e) => handleDrop(e, idx)}
-                                  >
-                                    <div className={styles.indicatorTop}>
-                                      <div className={styles.indicatorLabel} title={ind.description}>
-                                        {ind.label}
-                                        <span className={styles.infoIcon} title={ind.description}>ⓘ</span>
-                                      </div>
-
-                                      {isEditingLayout && (
-                                        <div className={styles.layoutControls}>
-                                          <input
-                                            type="checkbox"
-                                            checked={ind.visible}
-                                            title="Toggle Visibility"
-                                            onChange={() => toggleVisibility(ind.id)}
-                                          />
-                                          <button
-                                            className={styles.shiftBtn}
-                                            disabled={idx === 0}
-                                            title="Move Up"
-                                            onClick={() => shiftOrder(idx, -1)}
-                                          >
-                                            ▲
-                                          </button>
-                                          <button
-                                            className={styles.shiftBtn}
-                                            disabled={idx === sortedIndicators.length - 1}
-                                            title="Move Down"
-                                            onClick={() => shiftOrder(idx, 1)}
-                                          >
-                                            ▼
-                                          </button>
-                                          <span className={styles.dragHandle} title="Drag to reorder">☰</span>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    <div className={styles.indicatorValue}>
-                                      {val.status === 'found' ? (
-                                        <span className={styles.valueText}>{val.value}</span>
-                                      ) : (
-                                        <span className={styles.mutedText}>{statusLabel}</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {card.id === 'stats' && (
-                          <ul className={styles.bulletList}>
-                            {data.stats.map((s, i) => <li key={i}>{s}</li>)}
-                          </ul>
-                        )}
-
-                        {card.id === 'controversies' && (
-                          <ul className={styles.bulletList}>
-                            {data.controversies.map((c, i) => <li key={i}>{c}</li>)}
-                          </ul>
-                        )}
-
-                        {card.id === 'questions' && (
-                          <div className={styles.questionList}>
-                            {data.questions.map((q, i) => (
-                              <div key={i} className={styles.question}>
-                                <div className={styles.questionNum}>{i + 1}</div>
-                                <p>{q}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {card.id === 'alliances' && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div className={styles.allyGrid}>
-                              <div>
-                                <div className={styles.allyLabel}>Allies on this topic</div>
-                                <div className={styles.tagList}>
-                                  {data.allies.length > 0 ? data.allies.map((a, i) => (
-                                    <span key={i} className="badge badge-green">{a}</span>
-                                  )) : <span className="text-muted text-sm">None identified</span>}
-                                </div>
-                              </div>
-                              <div>
-                                <div className={styles.allyLabel}>Adversarial positions</div>
-                                <div className={styles.tagList}>
-                                  {data.adversaries.length > 0 ? data.adversaries.map((a, i) => (
-                                    <span key={i} className="badge badge-red">{a}</span>
-                                  )) : <span className="text-muted text-sm">None identified</span>}
-                                </div>
-                              </div>
-                            </div>
-                            {data.recent_shifts && (
-                              <div className={styles.shifts} style={{ marginTop: 12 }}>
-                                <div className={styles.allyLabel} style={{ marginBottom: 6 }}>Recent shifts</div>
-                                <p className={styles.prose}>{data.recent_shifts}</p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {card.id === 'sources' && (
-                          <div className={styles.sourcesWrapper}>
-                            <button
-                              className={styles.sourcesToggle}
-                              onClick={() => setExpandedSources(!expandedSources)}
-                              style={{ borderBottom: expandedSources ? '1px solid var(--border-subtle)' : 'none', paddingBottom: expandedSources ? 8 : 0 }}
+                      {/* Stacked Cards inside this column */}
+                      {col.cards.map((card) => {
+                        return (
+                          <div
+                            key={card.id}
+                            className={`${styles.boardCard} ${draggedCardId === card.id ? styles.cardDragging : ''} ${dragOverCardId === card.id ? styles.cardDragOver : ''}`}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              if (dragOverCardId !== card.id) setDragOverCardId(card.id);
+                            }}
+                            onDragLeave={() => {
+                              if (dragOverCardId === card.id) setDragOverCardId(null);
+                            }}
+                            onDrop={(e) => {
+                              handleCardDrop(e, card.id);
+                              setDragOverCardId(null);
+                            }}
+                          >
+                            {/* Card Header (Draggable trigger only) */}
+                            <div
+                              className={styles.cardHeader}
+                              draggable
+                              onDragStart={(e) => handleCardDragStart(e, card.id)}
                             >
-                              <h4 className={styles.allyLabel} style={{ margin: 0 }}>
-                                📚 Grounding Sources ({data.sources.length})
-                              </h4>
-                              <span style={{ color: 'var(--text-muted)' }}>{expandedSources ? '▾' : '▸'}</span>
-                            </button>
-                            {expandedSources && (
-                              <div className={styles.sourceList}>
-                                {data.sources.map((src, i) => (
-                                  <div key={i} className={styles.source}>
-                                    <div className={styles.sourceTop}>
-                                      <a href={src.url} target="_blank" rel="noopener noreferrer" className={styles.sourceTitle}>
-                                        {src.title || src.url}
-                                      </a>
-                                      {src.verified !== undefined && (
-                                        <span className={`badge ${src.verified ? 'badge-green' : 'badge-yellow'}`}>
-                                          {src.verified ? '✓ Verified' : '⚠ Unverified'}
-                                        </span>
-                                      )}
-                                      <span className={`badge ${TIER_CLASS[src.credibility_tier]}`}>{TIER_LABEL[src.credibility_tier]}</span>
+                              <h3 className={styles.cardTitle}>{card.title}</h3>
+                              <span className={styles.cardDragHandle} title="Drag header to reorder">☰</span>
+                            </div>
+
+                            {/* Card Body */}
+                            <div className={styles.cardBody}>
+                              {card.id === 'stance' && (
+                                <p className={styles.prose}>{data.stance_summary}</p>
+                              )}
+
+                              {card.id === 'indicators' && (
+                                <div className={styles.indicatorsWrapper}>
+                                  <div className={styles.indicatorsHeader} style={{ padding: '0 0 12px 0', borderBottom: '1px solid var(--border-subtle)', marginBottom: 12 }}>
+                                    <div className={styles.indicatorControls}>
+                                      <button
+                                        className={`btn btn-ghost btn-sm ${isEditingLayout ? 'text-primary' : ''}`}
+                                        style={{ fontSize: 12, padding: '4px 8px' }}
+                                        onClick={() => setIsEditingLayout(!isEditingLayout)}
+                                      >
+                                        ⚙️ {isEditingLayout ? 'Exit Layout Edit' : 'Edit Layout'}
+                                      </button>
+                                      <label className={styles.checkboxLabel} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={showNA}
+                                          onChange={(e) => setShowNA(e.target.checked)}
+                                        />
+                                        Show N/A Indicators
+                                      </label>
                                     </div>
-                                    {src.publication_date && (
-                                      <div className={styles.sourceMeta}>{src.publication_date}</div>
-                                    )}
-                                    {src.extracted_text && (
-                                      <blockquote className={styles.sourceQuote}>"{src.extracted_text.slice(0, 240)}"</blockquote>
-                                    )}
-                                    {src.raw_content && (
-                                      <div style={{ marginTop: '6px' }}>
-                                        <button
-                                          className="btn btn-ghost btn-sm"
-                                          style={{ padding: '2px 8px', fontSize: '10px', height: 'auto', minHeight: 'unset' }}
-                                          onClick={() => setExpandedRaw(expandedRaw === i ? null : i)}
-                                        >
-                                          {expandedRaw === i ? 'Hide Full Text' : 'View Full Text'}
-                                        </button>
-                                        {expandedRaw === i && (
-                                          <pre className={styles.rawContentPre}>{src.raw_content}</pre>
-                                        )}
-                                      </div>
-                                    )}
                                   </div>
-                                ))}
-                              </div>
-                            )}
+
+                                  <div className={styles.indicatorsGrid}>
+                                    {sortedIndicators.map((ind, idx) => {
+                                      const val = (data?.indicator_values || []).find((v: any) => v.indicatorId === ind.id) || {
+                                        value: null,
+                                        status: 'insufficient_sourcing' as const,
+                                        verified: false,
+                                      };
+
+                                      if (!ind.visible && !isEditingLayout) return null;
+
+                                      const isNA = val.status === 'not_applicable';
+                                      if (isNA && !showNA && !isEditingLayout) return null;
+
+                                      let cardClass = styles.indicatorCard;
+                                      let statusLabel = 'Found';
+                                      if (val.status === 'insufficient_sourcing') {
+                                        cardClass = `${styles.indicatorCard} ${styles.indicatorCardSourcing}`;
+                                        statusLabel = 'No verified data';
+                                      } else if (isNA) {
+                                        cardClass = `${styles.indicatorCard} ${styles.indicatorCardNA}`;
+                                        statusLabel = 'Not Applicable';
+                                      }
+
+                                      if (isEditingLayout && !ind.visible) {
+                                        cardClass = `${cardClass} ${styles.indicatorCardHidden}`;
+                                      }
+
+                                      return (
+                                        <div
+                                          key={ind.id}
+                                          className={cardClass}
+                                          draggable={isEditingLayout}
+                                          onDragStart={(e) => handleDragStart(e, idx)}
+                                          onDragOver={(e) => e.preventDefault()}
+                                          onDrop={(e) => handleDrop(e, idx)}
+                                        >
+                                          <div className={styles.indicatorTop}>
+                                            <div className={styles.indicatorLabel} title={ind.description}>
+                                              {ind.label}
+                                              <span className={styles.infoIcon} title={ind.description}>ⓘ</span>
+                                            </div>
+
+                                            {isEditingLayout && (
+                                              <div className={styles.layoutControls}>
+                                                <input
+                                                  type="checkbox"
+                                                  checked={ind.visible}
+                                                  title="Toggle Visibility"
+                                                  onChange={() => toggleVisibility(ind.id)}
+                                                />
+                                                <button
+                                                  className={styles.shiftBtn}
+                                                  disabled={idx === 0}
+                                                  title="Move Up"
+                                                  onClick={() => shiftOrder(idx, -1)}
+                                                >
+                                                  ▲
+                                                </button>
+                                                <button
+                                                  className={styles.shiftBtn}
+                                                  disabled={idx === sortedIndicators.length - 1}
+                                                  title="Move Down"
+                                                  onClick={() => shiftOrder(idx, 1)}
+                                                >
+                                                  ▼
+                                                </button>
+                                                <span className={styles.dragHandle} title="Drag to reorder">☰</span>
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          <div className={styles.indicatorValue}>
+                                            {val.status === 'found' ? (
+                                              <span className={styles.valueText}>{val.value}</span>
+                                            ) : (
+                                              <span className={styles.mutedText}>{statusLabel}</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {card.id === 'stats' && (
+                                <ul className={styles.bulletList}>
+                                  {data.stats.map((s, i) => <li key={i}>{s}</li>)}
+                                </ul>
+                              )}
+
+                              {card.id === 'controversies' && (
+                                <ul className={styles.bulletList}>
+                                  {data.controversies.map((c, i) => <li key={i}>{c}</li>)}
+                                </ul>
+                              )}
+
+                              {card.id === 'questions' && (
+                                <div className={styles.questionList}>
+                                  {data.questions.map((q, i) => (
+                                    <div key={i} className={styles.question}>
+                                      <div className={styles.questionNum}>{i + 1}</div>
+                                      <p>{q}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {card.id === 'alliances' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                  <div className={styles.allyGrid}>
+                                    <div>
+                                      <div className={styles.allyLabel}>Allies on this topic</div>
+                                      <div className={styles.tagList}>
+                                        {data.allies.length > 0 ? data.allies.map((a, i) => (
+                                          <span key={i} className="badge badge-green">{a}</span>
+                                        )) : <span className="text-muted text-sm">None identified</span>}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className={styles.allyLabel}>Adversarial positions</div>
+                                      <div className={styles.tagList}>
+                                        {data.adversaries.length > 0 ? data.adversaries.map((a, i) => (
+                                          <span key={i} className="badge badge-red">{a}</span>
+                                        )) : <span className="text-muted text-sm">None identified</span>}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {data.recent_shifts && (
+                                    <div className={styles.shifts} style={{ marginTop: 12 }}>
+                                      <div className={styles.allyLabel} style={{ marginBottom: 6 }}>Recent shifts</div>
+                                      <p className={styles.prose}>{data.recent_shifts}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {card.id === 'sources' && (
+                                <div className={styles.sourcesWrapper}>
+                                  <button
+                                    className={styles.sourcesToggle}
+                                    onClick={() => setExpandedSources(!expandedSources)}
+                                    style={{ borderBottom: expandedSources ? '1px solid var(--border-subtle)' : 'none', paddingBottom: expandedSources ? 8 : 0 }}
+                                  >
+                                    <h4 className={styles.allyLabel} style={{ margin: 0 }}>
+                                      📚 Grounding Sources ({data.sources.length})
+                                    </h4>
+                                    <span style={{ color: 'var(--text-muted)' }}>{expandedSources ? '▾' : '▸'}</span>
+                                  </button>
+                                  {expandedSources && (
+                                    <div className={styles.sourceList}>
+                                      {data.sources.map((src, i) => (
+                                        <div key={i} className={styles.source}>
+                                          <div className={styles.sourceTop}>
+                                            <a href={src.url} target="_blank" rel="noopener noreferrer" className={styles.sourceTitle}>
+                                              {src.title || src.url}
+                                            </a>
+                                            {src.verified !== undefined && (
+                                              <span className={`badge ${src.verified ? 'badge-green' : 'badge-yellow'}`}>
+                                                {src.verified ? '✓ Verified' : '⚠ Unverified'}
+                                              </span>
+                                            )}
+                                            <span className={`badge ${TIER_CLASS[src.credibility_tier]}`}>{TIER_LABEL[src.credibility_tier]}</span>
+                                          </div>
+                                          {src.publication_date && (
+                                            <div className={styles.sourceMeta}>{src.publication_date}</div>
+                                          )}
+                                          {src.extracted_text && (
+                                            <blockquote className={styles.sourceQuote}>"{src.extracted_text.slice(0, 240)}"</blockquote>
+                                          )}
+                                          {src.raw_content && (
+                                            <div style={{ marginTop: '6px' }}>
+                                              <button
+                                                className="btn btn-ghost btn-sm"
+                                                style={{ padding: '2px 8px', fontSize: '10px', height: 'auto', minHeight: 'unset' }}
+                                                onClick={() => setExpandedRaw(expandedRaw === i ? null : i)}
+                                              >
+                                                {expandedRaw === i ? 'Hide Full Text' : 'View Full Text'}
+                                              </button>
+                                              {expandedRaw === i && (
+                                                <pre className={styles.rawContentPre}>{src.raw_content}</pre>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
