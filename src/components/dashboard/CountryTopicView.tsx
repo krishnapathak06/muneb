@@ -174,6 +174,7 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
   const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
   const [dragOverSpacerRowId, setDragOverSpacerRowId] = useState<string | null>(null);
   const [dragOverLineIndex, setDragOverLineIndex] = useState<number | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
 
   const saveBoardLayout = (newLayout: BoardLayout) => {
     setBoardLayout(newLayout);
@@ -576,11 +577,18 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
                   return (
                     <div
                       key={col.id}
-                      className={styles.boardColumn}
+                      className={`${styles.boardColumn} ${dragOverColumnId === col.id ? styles.columnDragOver : ''}`}
                       style={gridStyle}
-                      onDragOver={(e) => e.preventDefault()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (dragOverColumnId !== col.id) setDragOverColumnId(col.id);
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverColumnId === col.id) setDragOverColumnId(null);
+                      }}
                       onDrop={(e) => {
                         handleCardDropOnColumn(e, rowIndex, colIndex);
+                        setDragOverColumnId(null);
                       }}
                     >
                       {/* Column Header (Width control pill) */}
