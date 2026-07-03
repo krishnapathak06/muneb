@@ -98,7 +98,13 @@ export default function IntakeStep({ workspaceId, onComplete }: Props) {
                 style={{ display: 'none' }}
                 onChange={(e) => setBgFile(e.target.files?.[0] ?? null)}
               />
-              <div className={styles.dropIcon}>{bgFile ? '✅' : '📄'}</div>
+              <div className={styles.dropIcon}>
+                {bgFile ? (
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                ) : (
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                )}
+              </div>
               <div className={styles.dropTitle}>Background Guide</div>
               <div className={styles.dropSub}>{bgFile ? bgFile.name : 'Click to upload PDF'}</div>
             </div>
@@ -115,23 +121,30 @@ export default function IntakeStep({ workspaceId, onComplete }: Props) {
                 style={{ display: 'none' }}
                 onChange={(e) => setPortfolioFile(e.target.files?.[0] ?? null)}
               />
-              <div className={styles.dropIcon}>{portfolioFile ? '✅' : '📊'}</div>
+              <div className={styles.dropIcon}>
+                {portfolioFile ? (
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                ) : (
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+                )}
+              </div>
               <div className={styles.dropTitle}>Portfolio Matrix</div>
               <div className={styles.dropSub}>{portfolioFile ? portfolioFile.name : 'PDF or Excel (.xlsx)'}</div>
             </div>
           </div>
 
-          {error && <div className="alert alert-danger" style={{ marginTop: 16 }}>⚠ {error}</div>}
+          {error && <div className="alert alert-danger" style={{ marginTop: 16 }}>{error}</div>}
 
           <button
             id="btn-parse-files"
+            type="button"
             className="btn btn-primary btn-lg"
             style={{ marginTop: 24, width: '100%' }}
             onClick={handleParse}
             disabled={!bgFile || !portfolioFile || parsing}
           >
             {parsing ? (
-              <><span className="animate-spin" style={{ display: 'inline-block' }}>⟳</span> Parsing documents…</>
+              <><span className="animate-spin" style={{ display: 'inline-block', marginRight: 8 }}>⟳</span> Parsing documents…</>
             ) : 'Parse Documents'}
           </button>
         </div>
@@ -206,19 +219,20 @@ export default function IntakeStep({ workspaceId, onComplete }: Props) {
                 onKeyDown={(e) => e.key === 'Enter' && addCountry()}
                 style={{ flex: 1 }}
               />
-              <button className="btn btn-secondary" onClick={addCountry}>Add</button>
+              <button type="button" className="btn btn-secondary" onClick={addCountry}>Add</button>
             </div>
           </div>
 
           <div className={styles.confirmRow}>
-            <button className="btn btn-secondary" onClick={() => setResult(null)}>← Re-upload</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setResult(null)}>Re-upload</button>
             <button
               id="btn-confirm-intake"
-              className="btn btn-primary btn-lg"
+              type="button"
+              className="btn btn-primary"
               onClick={handleConfirm}
               disabled={!committee.trim() || !agenda.trim() || countries.length === 0}
             >
-              Confirm & Continue →
+              Confirm & Continue
             </button>
           </div>
         </div>

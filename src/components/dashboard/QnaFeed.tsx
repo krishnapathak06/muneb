@@ -94,7 +94,9 @@ export default function QnaFeed({ workspaceId }: Props) {
       <div className={styles.messages}>
         {messages.length === 0 && (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>💬</div>
+            <div className={styles.emptyIcon}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
             <p>Ask anything about the research.</p>
             <p className="text-xs text-muted">Answers draw only from pre-generated research, not the open web.</p>
             <div className={styles.suggestions}>
@@ -104,6 +106,7 @@ export default function QnaFeed({ workspaceId }: Props) {
                 "Compare the G77 stances on this issue.",
               ].map((s) => (
                 <button
+                  type="button"
                   key={s}
                   className={styles.suggestion}
                   onClick={() => { setInput(s); }}
@@ -120,14 +123,14 @@ export default function QnaFeed({ workspaceId }: Props) {
             return (
               <div key={i} className={`${styles.message} ${styles.errorMsg} animate-fade-in`}>
                 <div className={styles.errorBubble}>
-                  <div className={styles.errorTitle}>⚠ Context Limit Exceeded</div>
+                  <div className={styles.errorTitle}>Context Limit Exceeded</div>
                   <p className={styles.msgText}>{msg.content}</p>
                   <div className={styles.errorMeta}>
                     <span>Estimated: {msg.estimatedTokens?.toLocaleString()} tokens</span>
                     <span>Max limit: {msg.limit?.toLocaleString()} tokens</span>
                   </div>
                   <div className={styles.errorResolution}>
-                    💡 Try narrowing your question to fewer countries or sub-issues.
+                    Try narrowing your question to fewer countries or sub-issues.
                   </div>
                 </div>
               </div>
@@ -166,7 +169,7 @@ export default function QnaFeed({ workspaceId }: Props) {
 
         {error && (
           <div className="alert alert-danger" style={{ margin: '8px 12px' }}>
-            ⚠ {error}
+            {error}
           </div>
         )}
 
@@ -191,11 +194,16 @@ export default function QnaFeed({ workspaceId }: Props) {
         />
         <button
           id="btn-send-qna"
+          type="button"
           className={`btn btn-primary ${styles.sendBtn}`}
           onClick={handleSend}
           disabled={loading || !input.trim()}
         >
-          {loading ? <span className="animate-spin" style={{ display: 'inline-block' }}>⟳</span> : '↑'}
+          {loading ? (
+            <span className="animate-spin" style={{ display: 'inline-block' }}>⟳</span>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+          )}
         </button>
       </div>
     </div>

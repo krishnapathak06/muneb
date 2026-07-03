@@ -147,7 +147,7 @@ export default function SubIssueStep({
         <>
           <div className={styles.cardList}>
             {subIssues.map((si, i) => (
-              <div key={si.id} className={`card ${styles.subIssueCard} animate-fade-in`} style={{ animationDelay: `${i * 60}ms` }}>
+              <div key={si.id} className={`${styles.subIssueCard} animate-fade-in`} style={{ animationDelay: `${i * 60}ms` }}>
                 <div className={styles.cardTop}>
                   <div className={styles.cardNumber}>{i + 1}</div>
                   <div className={styles.cardFields}>
@@ -161,14 +161,18 @@ export default function SubIssueStep({
                       className={`input ${styles.descInput}`}
                       value={si.description}
                       onChange={(e) => updateSubIssue(si.id, 'description', e.target.value)}
-                      placeholder="1-2 sentence description…"
+                      placeholder="Describe this sub-issue in 1-2 sentences…"
                       rows={2}
                     />
                   </div>
                   <div className={styles.cardActions}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => moveUp(i)} disabled={i === 0} title="Move up">↑</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => moveDown(i)} disabled={i === subIssues.length - 1} title="Move down">↓</button>
-                    <button className="btn btn-danger btn-sm" onClick={() => removeSubIssue(si.id)} title="Remove">×</button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => moveUp(i)} disabled={i === 0} title="Move up">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => moveDown(i)} disabled={i === subIssues.length - 1} title="Move down">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <button type="button" className="btn btn-danger btn-sm" onClick={() => removeSubIssue(si.id)} title="Remove">Remove</button>
                   </div>
                 </div>
               </div>
@@ -176,24 +180,25 @@ export default function SubIssueStep({
           </div>
 
           {subIssues.length < 6 && (
-            <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={addSubIssue}>
+            <button type="button" className="btn btn-secondary" style={{ marginTop: 12 }} onClick={addSubIssue}>
               + Add Sub-issue
             </button>
           )}
 
-          {error && <div className="alert alert-danger" style={{ marginTop: 16 }}>⚠ {error}</div>}
+          {error && <div className="alert alert-danger" style={{ marginTop: 16 }}>{error}</div>}
 
           <div className={styles.approveRow}>
-            <button className="btn btn-secondary" onClick={() => extractSubIssues(true)}>↺ Re-generate</button>
+            <button type="button" className="btn btn-secondary" onClick={() => extractSubIssues(true)}>Re-generate</button>
             <button
               id="btn-approve-subissues"
-              className="btn btn-primary btn-lg"
+              type="button"
+              className="btn btn-primary"
               onClick={handleApprove}
               disabled={submitting || subIssues.length === 0 || subIssues.some((si) => !si.title.trim())}
             >
-              {submitting
-                ? <><span className="animate-spin" style={{ display: 'inline-block' }}>⟳</span> Starting research…</>
-                : `Approve & Start Research on ${countries.length} Countries →`}
+              {submitting ? (
+                <><span className="animate-spin" style={{ display: 'inline-block', marginRight: 8 }}>⟳</span> Starting research…</>
+              ) : `Approve & Start Research (${countries.length} countries)`}
             </button>
           </div>
         </>

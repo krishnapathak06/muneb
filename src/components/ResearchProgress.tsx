@@ -83,29 +83,44 @@ export default function ResearchProgress({ workspaceId, onComplete }: Props) {
     <div className={styles.container}>
       <div className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h2 className={styles.title}>Step 3 — Research in Progress</h2>
+          <h2 className={styles.title}>Researching Committee Context</h2>
           <p className={styles.sub}>
-            Per-country agents are researching in parallel. This may take 20-40 minutes depending on rate limits.
-            You can leave this page — progress is saved automatically.
+            Per-country AI research agents are processing the background matrix in parallel.
+            You can safely close this workspace — all progress updates are saved.
           </p>
         </div>
         <button
-          className="btn btn-ghost btn-sm text-primary"
-          style={{ border: '1px solid var(--border-default)', marginTop: 8 }}
+          type="button"
+          className="btn btn-secondary btn-sm"
+          style={{ marginTop: 8 }}
           onClick={handleRestart}
           disabled={restarting}
         >
-          {restarting ? 'Restarting...' : '↻ Restart Research'}
+          {restarting ? 'Restarting...' : 'Restart Research Run'}
         </button>
       </div>
 
-      {/* Progress bar */}
-      <div className={`card ${styles.progressCard}`}>
+      {/* Progress card */}
+      <div className={styles.progressCard}>
         <div className={styles.progressStats}>
-          <div className={styles.stat}><span className={styles.statNum}>{done}</span><span className={styles.statLabel}>Done</span></div>
-          <div className={styles.stat}><span className={styles.statNum} style={{ color: 'var(--accent-primary)' }}>{researching}</span><span className={styles.statLabel}>Researching</span></div>
-          <div className={styles.stat}><span className={styles.statNum} style={{ color: 'var(--text-muted)' }}>{total - done - researching - failed}</span><span className={styles.statLabel}>Queued</span></div>
-          {failed > 0 && <div className={styles.stat}><span className={styles.statNum} style={{ color: 'var(--accent-danger)' }}>{failed}</span><span className={styles.statLabel}>Failed</span></div>}
+          <div className={styles.stat}>
+            <span className={styles.statNum} style={{ color: 'var(--accent-success)' }}>{done}</span>
+            <span className={styles.statLabel}>Completed</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statNum} style={{ color: 'var(--accent-primary)' }}>{researching}</span>
+            <span className={styles.statLabel}>Researching</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statNum} style={{ color: 'var(--text-secondary)' }}>{total - done - researching - failed}</span>
+            <span className={styles.statLabel}>Queued</span>
+          </div>
+          {failed > 0 && (
+            <div className={styles.stat}>
+              <span className={styles.statNum} style={{ color: 'var(--accent-danger)' }}>{failed}</span>
+              <span className={styles.statLabel}>Failed</span>
+            </div>
+          )}
         </div>
         <div className={styles.progressBar}>
           <div
@@ -113,17 +128,17 @@ export default function ResearchProgress({ workspaceId, onComplete }: Props) {
             style={{ width: `${pct}%`, transition: 'width 0.5s ease' }}
           />
         </div>
-        <div className={styles.progressPct}>{pct}% complete</div>
+        <div className={styles.progressPct}>{pct}% Completed</div>
         
         <div className={styles.embeddedBanner}>
-          <span style={{ fontSize: 24 }}>📚</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           <div>
-            <strong>{totalEmbedded}</strong> resources successfully fetched and embedded into the system.
+            Analyzed and integrated <strong>{totalEmbedded}</strong> core intelligence sources.
           </div>
         </div>
 
         {wsStatus === 'done' && (
-          <div className={styles.doneMsg}>✓ All research complete — loading dashboard…</div>
+          <div className={styles.doneMsg}>Workspace analysis finalized. Refreshing dashboard views…</div>
         )}
       </div>
 
@@ -135,7 +150,10 @@ export default function ResearchProgress({ workspaceId, onComplete }: Props) {
             className={`${styles.countryItem} ${styles['status_' + cp.status]}`}
           >
             <span className={`${styles.statusIcon} ${cp.status === 'researching' ? 'animate-pulse' : ''}`}>
-              {STATUS_ICON[cp.status]}
+              {cp.status === 'done' && '✓'}
+              {cp.status === 'researching' && '●'}
+              {cp.status === 'queued' && '○'}
+              {cp.status === 'failed' && '×'}
             </span>
             <div className={styles.countryInfo}>
               <div className={styles.countryName}>{cp.name}</div>

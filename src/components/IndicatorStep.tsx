@@ -172,59 +172,61 @@ export default function IndicatorStep({
       {/* Tabs */}
       <div className={styles.tabs}>
         <button
+          type="button"
           className={`${styles.tab} ${activeTab === 'main' ? styles.tabActive : ''}`}
           onClick={() => setActiveTab('main')}
         >
-          🌐 Main Agenda
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Main Agenda
         </button>
         {subIssues.map((si) => (
           <button
             key={si.id}
+            type="button"
             className={`${styles.tab} ${activeTab === `subissue_${si.id}` ? styles.tabActive : ''}`}
             onClick={() => setActiveTab(`subissue_${si.id}`)}
           >
-            📌 {si.title || 'Sub-issue'}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            {si.title || 'Sub-issue'}
           </button>
         ))}
       </div>
 
       {loading ? (
         <div className={styles.loadingState}>
-          <div className="animate-spin">⟳</div>
+          <div className="animate-spin" style={{ fontSize: 20 }}>⟳</div>
           <span>Loading indicator templates...</span>
         </div>
       ) : (
         <div className={styles.cardList}>
           {activeIndicators.map((ind, i) => (
-            <div key={ind.id} className={`card ${styles.card}`}>
+            <div key={ind.id} className={styles.card}>
               <div className={styles.cardTop}>
                 <div className={styles.cardNumber}>{i + 1}</div>
                 <div className={styles.cardFields}>
                   <input
                     type="text"
                     className={`input ${styles.titleInput}`}
-                    placeholder="Indicator Name (e.g. Total Navy Ships)"
+                    placeholder="Indicator name (e.g. Defense Expenditure as % of GDP)"
                     value={ind.label}
                     onChange={(e) => updateIndicator(ind.id, 'label', e.target.value)}
                   />
                   <textarea
                     rows={2}
                     className={`input ${styles.descInput}`}
-                    placeholder="Short description of what this measures and why it matters..."
+                    placeholder="Describe what this indicator measures and why it is critical for research comparison..."
                     value={ind.description}
                     onChange={(e) => updateIndicator(ind.id, 'description', e.target.value)}
                   />
                 </div>
                 <div className={styles.cardActions}>
-                  <button className="btn btn-ghost btn-sm" onClick={() => moveUp(i)} disabled={i === 0}>
-                    ▲
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => moveUp(i)} disabled={i === 0} title="Move up">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"/></svg>
                   </button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => moveDown(i)} disabled={i === activeIndicators.length - 1}>
-                    ▼
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => moveDown(i)} disabled={i === activeIndicators.length - 1} title="Move down">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                   </button>
-                  <button className="btn btn-ghost btn-sm text-danger" onClick={() => removeIndicator(ind.id)}>
-                    ✕
-                  </button>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeIndicator(ind.id)} title="Remove">Remove</button>
                 </div>
               </div>
             </div>
@@ -234,24 +236,25 @@ export default function IndicatorStep({
             <div className={styles.emptyState}>No indicators added yet for this topic. Click below to add one.</div>
           )}
 
-          <button className="btn btn-ghost btn-sm" onClick={addIndicator} style={{ alignSelf: 'flex-start', marginTop: 8 }}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={addIndicator} style={{ alignSelf: 'flex-start', marginTop: 12 }}>
             + Add Custom Indicator
           </button>
         </div>
       )}
 
-      {error && <div className={styles.errorText} style={{ marginTop: 16 }}>⚠️ {error}</div>}
+      {error && <div className={styles.errorText} style={{ marginTop: 16 }}>{error}</div>}
 
       <div className={styles.approveRow}>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-          Review indicators for all tabs before start.
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
+          Review indicators for all topics before initiating country research.
         </div>
         <button
+          type="button"
           className="btn btn-primary"
           onClick={handleApprove}
           disabled={submitting || loading}
         >
-          {submitting ? 'Starting Research...' : 'Approve & Start Research →'}
+          {submitting ? 'Starting Research...' : 'Approve & Start Research'}
         </button>
       </div>
     </div>

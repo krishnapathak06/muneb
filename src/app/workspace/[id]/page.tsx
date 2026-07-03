@@ -7,6 +7,7 @@ import SubIssueStep from '@/components/SubIssueStep';
 import IndicatorStep from '@/components/IndicatorStep';
 import ResearchProgress from '@/components/ResearchProgress';
 import Dashboard from '@/components/Dashboard';
+import Sidebar from '@/components/Sidebar';
 import styles from './workspace.module.css';
 
 interface WorkspaceMeta {
@@ -75,7 +76,8 @@ export default function WorkspacePage() {
   if (loading) {
     return (
       <main className={styles.loading}>
-        <div className="animate-spin" style={{ fontSize: 24 }}>⟳</div>
+        <div className={`animate-spin ${styles.loadingSpinner}`}>⟳</div>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>Loading workspace analytics…</span>
       </main>
     );
   }
@@ -84,7 +86,7 @@ export default function WorkspacePage() {
     return (
       <main className={styles.notFound}>
         <h1>Workspace not found</h1>
-        <button className="btn btn-primary" onClick={() => router.push('/')}>← Back</button>
+        <button type="button" className="btn btn-primary" onClick={() => router.push('/')}>← Back</button>
       </main>
     );
   }
@@ -92,83 +94,99 @@ export default function WorkspacePage() {
   const currentStep = STEP_FOR_STATUS[ws.status] ?? 0;
 
   return (
-    <main className={styles.main}>
-      {/* Top bar */}
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <div className={styles.headerLeft}>
-            <button className="btn btn-ghost btn-sm" onClick={() => router.push('/')}>← Workspaces</button>
-            <div className={styles.wsName}>{ws.name}</div>
-          </div>
-          {/* Step progress */}
-          <div className={styles.steps}>
-            {STEPS.map((step, i) => {
-              const isPrevious = i < currentStep;
-              return (
-                <div
-                  key={step}
-                  className={`${styles.step} ${i === currentStep ? styles.stepActive : ''} ${isPrevious ? styles.stepDone : ''}`}
-                  style={{ cursor: isPrevious ? 'pointer' : 'default' }}
-                  onClick={() => isPrevious && handleJumpToStep(i, step)}
-                >
-                  <div className={styles.stepDot}>
-                    {isPrevious ? '✓' : i + 1}
-                  </div>
-                  <span className={styles.stepLabel}>{step}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </header>
+    <div className={styles.workspaceLayout}>
+      {/* Collapsible SaaS Sidebar */}
+      <Sidebar />
 
-      {/* Step content */}
-      <div className={styles.content}>
-        {currentStep === 0 && (
-          <IntakeStep
-            workspaceId={id}
-            onComplete={(data, rawBg) => {
-              setIntakeData(data);
-              setBgText(rawBg);
-              // Move to sub-issues step by updating workspace status
-              fetch('/api/workspaces/' + id + '/advance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'sub-issues', ...data }),
-              }).then(() => refreshWorkspace());
-            }}
-          />
-        )}
-        {currentStep === 1 && (
-          <SubIssueStep
-            workspaceId={id}
-            committee={ws.committee || intakeData?.committee || ''}
-            mainAgenda={ws.agenda || intakeData?.agenda || ''}
-            countries={ws.countries || intakeData?.countries || []}
-            bgText={bgText}
-            onComplete={() => refreshWorkspace()}
-          />
-        )}
-        {currentStep === 2 && (
-          <IndicatorStep
-            workspaceId={id}
-            committee={ws.committee || intakeData?.committee || ''}
-            mainAgenda={ws.agenda || intakeData?.agenda || ''}
-            countries={ws.countries || intakeData?.countries || []}
-            subIssues={ws.subIssues || []}
-            onComplete={() => refreshWorkspace()}
-          />
-        )}
-        {currentStep === 3 && (
-          <ResearchProgress
-            workspaceId={id}
-            onComplete={() => refreshWorkspace()}
-          />
-        )}
-        {currentStep === 4 && (
-          <Dashboard workspaceId={id} />
-        )}
+      {/* Main Page Area */}
+      <div className={styles.mainWrapper}>
+        {/* Header */}
+        <header className={styles.header}>
+          <div className={styles.headerInner}>
+            <div className={styles.headerLeft}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => router.push('/')}
+                style={{ padding: '4px 8px' }}
+              >
+                Workspaces
+              </button>
+              <span className={styles.breadcrumbDivider}>/</span>
+              <div className={styles.wsName}>{ws.name}</div>
+            </div>
+
+            {/* Steps Progress Strip */}
+            <div className={styles.steps}>
+              {STEPS.map((step, i) => {
+                const isPrevious = i < currentStep;
+                const isActive = i === currentStep;
+                return (
+                  <div
+                    key={step}
+                    className={`${styles.step} ${isActive ? styles.stepActive : ''} ${isPrevious ? styles.stepDone : ''}`}
+                    style={{ cursor: isPrevious ? 'pointer' : 'default' }}
+                    onClick={() => isPrevious && handleJumpToStep(i, step)}
+                    title={isPrevious ? `Click to jump back to ${step}` : undefined}
+                  >
+                    <div className={styles.stepDot}>
+                      {isPrevious ? '✓' : i + 1}
+                    </div>
+                    <span className={styles.stepLabel}>{step}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </header>
+
+        {/* Step Content wrapper */}
+        <div className={styles.content}>
+          {currentStep === 0 && (
+            <IntakeStep
+              workspaceId={id}
+              onComplete={(data, rawBg) => {
+                setIntakeData(data);
+                setBgText(rawBg);
+                fetch('/api/workspaces/' + id + '/advance', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ status: 'sub-issues', ...data }),
+                }).then(() => refreshWorkspace());
+              }}
+            />
+          )}
+          {currentStep === 1 && (
+            <SubIssueStep
+              workspaceId={id}
+              committee={ws.committee || intakeData?.committee || ''}
+              mainAgenda={ws.agenda || intakeData?.agenda || ''}
+              countries={ws.countries || intakeData?.countries || []}
+              bgText={bgText}
+              onComplete={() => refreshWorkspace()}
+            />
+          )}
+          {currentStep === 2 && (
+            <IndicatorStep
+              workspaceId={id}
+              committee={ws.committee || intakeData?.committee || ''}
+              mainAgenda={ws.agenda || intakeData?.agenda || ''}
+              countries={ws.countries || intakeData?.countries || []}
+              subIssues={ws.subIssues || []}
+              onComplete={() => refreshWorkspace()}
+            />
+          )}
+          {currentStep === 3 && (
+            <ResearchProgress
+              workspaceId={id}
+              onComplete={() => refreshWorkspace()}
+            />
+          )}
+          {currentStep === 4 && (
+            <Dashboard workspaceId={id} />
+          )}
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

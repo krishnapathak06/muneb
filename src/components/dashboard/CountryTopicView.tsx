@@ -77,7 +77,7 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-stance',
-          cards: [{ id: 'stance', title: '📌 Stance Summary', width: 12 }]
+          cards: [{ id: 'stance', title: 'Stance Summary', width: 12 }]
         }
       ]
     },
@@ -86,7 +86,7 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-indicators',
-          cards: [{ id: 'indicators', title: '📊 Topic Indicators', width: 12 }]
+          cards: [{ id: 'indicators', title: 'Topic Indicators', width: 12 }]
         }
       ]
     },
@@ -95,11 +95,11 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-left-1',
-          cards: [{ id: 'stats', title: '📊 Key Statistics & Data Points', width: 6 }]
+          cards: [{ id: 'stats', title: 'Key Statistics & Data Points', width: 6 }]
         },
         {
           id: 'col-right-1',
-          cards: [{ id: 'controversies', title: '⚡ Recent Controversies & Developments', width: 6 }]
+          cards: [{ id: 'controversies', title: 'Recent Controversies & Developments', width: 6 }]
         }
       ]
     },
@@ -108,7 +108,7 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-questions',
-          cards: [{ id: 'questions', title: '❓ Sharp Committee Questions', width: 12 }]
+          cards: [{ id: 'questions', title: 'Sharp Committee Questions', width: 12 }]
         }
       ]
     },
@@ -117,7 +117,7 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-alliances',
-          cards: [{ id: 'alliances', title: '🤝 Alliances & Tensions', width: 12 }]
+          cards: [{ id: 'alliances', title: 'Alliances & Tensions', width: 12 }]
         }
       ]
     },
@@ -126,7 +126,7 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-sources',
-          cards: [{ id: 'sources', title: '📚 Sources', width: 12 }]
+          cards: [{ id: 'sources', title: 'Sources', width: 12 }]
         }
       ]
     }

@@ -1,76 +1,207 @@
-.container { max-width: 900px; }
-.header { margin-bottom: var(--space-6); }
-.title { font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: var(--space-2); }
-.sub { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
 
-/* Progress Card */
-.progressCard { margin-bottom: var(--space-6); }
-.progressStats { display: flex; gap: var(--space-8); margin-bottom: var(--space-4); }
-.stat { display: flex; flex-direction: column; gap: 2px; }
-.statNum { font-size: 28px; font-weight: 700; line-height: 1; }
-.statLabel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.header {
+  margin-bottom: var(--space-8);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-4);
+}
 
-.progressBar {
-  width: 100%;
-  height: 6px;
-  background: var(--bg-input);
-  border-radius: var(--radius-full);
-  overflow: hidden;
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
   margin-bottom: var(--space-2);
 }
+
+.sub {
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Progress card */
+.progressCard {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6) var(--space-8);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.progressStats {
+  display: flex;
+  justify-content: space-around;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.statNum {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  font-family: var(--font-mono);
+}
+
+.statLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.progressBar {
+  height: 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+  background: var(--accent-primary);
   border-radius: var(--radius-full);
-  min-width: 4px;
 }
-.progressPct { font-size: 12px; color: var(--text-muted); }
-.doneMsg { margin-top: var(--space-4); color: var(--confidence-good); font-weight: 600; font-size: 14px; }
 
-/* Country Grid */
+.progressPct {
+  align-self: flex-end;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+/* Resources banner */
+.embeddedBanner {
+  background: rgba(37, 99, 235, 0.04);
+  border: 1px solid rgba(37, 99, 235, 0.1);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.doneMsg {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  color: var(--confidence-good);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 13.5px;
+  text-align: center;
+}
+
+/* Grid */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
 }
+
 .countryItem {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
+  padding: var(--space-4);
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  transition: border-color 0.2s;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.status_researching { border-color: rgba(108,142,245,0.3); background: rgba(108,142,245,0.04); }
-.status_done { border-color: rgba(52,211,153,0.2); }
-.status_failed { border-color: rgba(248,113,113,0.25); }
 
-.statusIcon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
-.status_queued .statusIcon { color: var(--text-muted); }
-.status_researching .statusIcon { color: var(--accent-primary); }
-.status_done .statusIcon { color: var(--confidence-good); }
-.status_failed .statusIcon { color: var(--accent-danger); }
-
-.countryInfo { min-width: 0; }
-.countryName { font-size: 13px; font-weight: 500; color: var(--text-primary); }
-.countryStage { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.countryError { font-size: 11px; color: var(--accent-danger); }
-
-.embeddedBanner {
+.statusIcon {
+  font-size: 16px;
+  font-weight: 700;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  background: rgba(52, 211, 153, 0.08);
-  border: 1px solid rgba(52, 211, 153, 0.20);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  margin-top: var(--space-4);
-  font-size: 14px;
-  color: var(--text-primary);
+  justify-content: center;
+  flex-shrink: 0;
 }
-.embeddedBanner strong {
-  font-size: 18px;
-  color: var(--confidence-good);
+
+.countryInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.countryName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.countryStage {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-primary);
+  margin-top: 2px;
+}
+
+.countryError {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-danger);
+  margin-top: 2px;
+}
+
+/* Status variants */
+.status_queued {
+  background: var(--bg-surface);
+}
+.status_queued .statusIcon {
+  border: 1.5px solid var(--border-strong);
+  color: var(--text-muted);
+}
+
+.status_researching {
+  background: rgba(37, 99, 235, 0.02);
+  border-color: var(--accent-primary);
+}
+.status_researching .statusIcon {
+  background: var(--accent-primary);
+  color: #ffffff;
+}
+
+.status_done {
+  background: rgba(16, 185, 129, 0.02);
+  border-color: var(--accent-success);
+}
+.status_done .statusIcon {
+  background: var(--accent-success);
+  color: #ffffff;
+}
+
+.status_failed {
+  background: rgba(239, 68, 68, 0.02);
+  border-color: var(--accent-danger);
+}
+.status_failed .statusIcon {
+  background: var(--accent-danger);
+  color: #ffffff;
 }
