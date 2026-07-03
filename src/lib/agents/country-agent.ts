@@ -1,5 +1,6 @@
 import { chatWithRetry } from '@/lib/openrouter';
 import { readWorkspaceFile, writeWorkspaceFile } from '@/lib/workspace';
+import { searchWeb } from '@/lib/search';
 import fs from 'fs';
 import path from 'path';
 
@@ -105,7 +106,17 @@ async function researchTopic(
     ? `\n\nContext from earlier research on this country (for cross-referencing):\n${previousContext.slice(0, 800)}`
     : '';
 
+  const searchQuery = `${countryName} ${topicTitle} ${mainAgenda}`;
+  const citations = await searchWeb(searchQuery);
+
+  const searchGroundingContext = citations.length > 0
+    ? `Grounding Search Results (real pages retrieved for this query):\n` +
+      citations.map((c, i) => `[Source ${i+1}]: ${c.title}\nURL: ${c.url}\nExcerpt: ${c.content}`).join('\n\n')
+    : 'No search results available. Rely on standard verified knowledge.';
+
   const userPrompt = `Research ${countryName}'s stance on: "${topicTitle}" — ${topicDescription}${contextNote}
+
+${searchGroundingContext}
 
 Return a JSON object with EXACTLY this structure:
 {
@@ -130,7 +141,7 @@ Return a JSON object with EXACTLY this structure:
 
 If you cannot find sourced information for a section, write "insufficient sourcing — verify before use" for that field. Do NOT invent sources.`;
 
-  const { content: responseText, citations } = await chatWithRetry([
+  const { content: responseText } = await chatWithRetry([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ], { maxTokens: 3000 });
@@ -221,7 +232,17 @@ async function researchGeopolitical(
   mainAgenda: string
 ): Promise<CountryResearchResult['geopolitical']> {
   const systemPrompt = buildSystemPrompt(countryName, committee, mainAgenda);
+  const searchQuery = `${countryName} geopolitical alliances ${mainAgenda}`;
+  const citations = await searchWeb(searchQuery);
+
+  const searchGroundingContext = citations.length > 0
+    ? `Grounding Search Results:\n` +
+      citations.map((c, i) => `[Source ${i+1}]: ${c.title}\nURL: ${c.url}\nExcerpt: ${c.content}`).join('\n\n')
+    : '';
+
   const userPrompt = `Research ${countryName}'s geopolitical position relevant to "${mainAgenda}":
+
+${searchGroundingContext}
 
 Return a JSON object with EXACTLY this structure:
 {
