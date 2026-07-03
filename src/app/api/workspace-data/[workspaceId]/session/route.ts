@@ -13,6 +13,12 @@ export async function GET(
 
   const manifest = readWorkspaceFile(workspaceId, 'session/manifest.json') ?? { segments: [] };
   const events = readWorkspaceFile(workspaceId, 'session/events.json') ?? [];
+  const activities = readWorkspaceFile(workspaceId, 'session/activities.json') ?? {
+    sessionStart: null,
+    activities: [],
+    globalPoints: [],
+  };
 
-  return NextResponse.json({ manifest, events });
+  return NextResponse.json({ manifest, events, activities });
 }
+
