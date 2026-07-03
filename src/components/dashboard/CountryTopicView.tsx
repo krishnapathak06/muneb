@@ -53,11 +53,11 @@ const TIER_CLASS: Record<number, string> = { 1: 'badge-green', 2: 'badge-blue', 
 interface CardConfig {
   id: string;
   title: string;
+  width: number;
 }
 
 interface BoardColumn {
   id: string;
-  width: number;
   cards: CardConfig[];
 }
 
@@ -77,8 +77,7 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-stance',
-          width: 12,
-          cards: [{ id: 'stance', title: '📌 Stance Summary' }]
+          cards: [{ id: 'stance', title: '📌 Stance Summary', width: 12 }]
         }
       ]
     },
@@ -87,8 +86,7 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-indicators',
-          width: 12,
-          cards: [{ id: 'indicators', title: '📊 Topic Indicators' }]
+          cards: [{ id: 'indicators', title: '📊 Topic Indicators', width: 12 }]
         }
       ]
     },
@@ -97,13 +95,11 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-left-1',
-          width: 6,
-          cards: [{ id: 'stats', title: '📊 Key Statistics & Data Points' }]
+          cards: [{ id: 'stats', title: '📊 Key Statistics & Data Points', width: 6 }]
         },
         {
           id: 'col-right-1',
-          width: 6,
-          cards: [{ id: 'controversies', title: '⚡ Recent Controversies & Developments' }]
+          cards: [{ id: 'controversies', title: '⚡ Recent Controversies & Developments', width: 6 }]
         }
       ]
     },
@@ -112,8 +108,7 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-questions',
-          width: 12,
-          cards: [{ id: 'questions', title: '❓ Sharp Committee Questions' }]
+          cards: [{ id: 'questions', title: '❓ Sharp Committee Questions', width: 12 }]
         }
       ]
     },
@@ -122,8 +117,7 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-alliances',
-          width: 12,
-          cards: [{ id: 'alliances', title: '🤝 Alliances & Tensions' }]
+          cards: [{ id: 'alliances', title: '🤝 Alliances & Tensions', width: 12 }]
         }
       ]
     },
@@ -132,13 +126,26 @@ const DEFAULT_LAYOUT: BoardLayout = {
       columns: [
         {
           id: 'col-sources',
-          width: 12,
-          cards: [{ id: 'sources', title: '📚 Sources' }]
+          cards: [{ id: 'sources', title: '📚 Sources', width: 12 }]
         }
       ]
     }
   ]
 };
+
+function isValidLayout(layout: any): layout is BoardLayout {
+  if (!layout || !Array.isArray(layout.rows)) return false;
+  for (const row of layout.rows) {
+    if (!row || !Array.isArray(row.columns)) return false;
+    for (const col of row.columns) {
+      if (!col || !Array.isArray(col.cards)) return false;
+      for (const card of col.cards) {
+        if (!card || typeof card.id !== 'string' || typeof card.width !== 'number') return false;
+      }
+    }
+  }
+  return true;
+}
 
 function partitionIntoRows(visibleCards: any[]) {
   return [visibleCards];
@@ -163,7 +170,10 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
       const saved = localStorage.getItem('mun_research_board_layout_v3');
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          if (isValidLayout(parsed)) {
+            return parsed;
+          }
         } catch {}
       }
     }
@@ -293,8 +303,7 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
     // Create new column at the end of the row
     const newCol = {
       id: `col-new-${Date.now()}`,
-      width: remaining,
-      cards: [movedCard],
+      cards: [{ ...movedCard, width: remaining }],
     };
     newRows[targetRowIdx].columns.push(newCol);
 
@@ -328,14 +337,13 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
     // Remove source card
     const [movedCard] = newRows[source.rowIndex].columns[source.columnIndex].cards.splice(source.cardIndex, 1);
 
-    // Create a new row with column width 12
+    // Create a new row with a column containing the movedCard
     const newRow = {
       id: `row-user-${Date.now()}`,
       columns: [
         {
           id: `col-user-${Date.now()}`,
-          width: 12,
-          cards: [movedCard],
+          cards: [{ ...movedCard, width: 12 }],
         }
       ]
     };
@@ -354,10 +362,13 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
     setDraggedCardId(null);
   };
 
-  const changeColumnWidth = (columnId: string, newWidth: number) => {
+  const changeCardWidth = (cardId: string, newWidth: number) => {
     const newRows = boardLayout.rows.map((row) => ({
       ...row,
-      columns: row.columns.map((col) => (col.id === columnId ? { ...col, width: newWidth } : col)),
+      columns: row.columns.map((col) => ({
+        ...col,
+        cards: col.cards.map((c) => (c.id === cardId ? { ...c, width: newWidth } : c)),
+      })),
     }));
     saveBoardLayout({ rows: newRows });
   };
@@ -547,7 +558,10 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
       {/* Grid-based Kanban Board container */}
       <div className={styles.boardGrid}>
         {visibleRows.map((row, rowIndex) => {
-          const rowSum = row.columns.reduce((sum, col) => sum + col.width, 0);
+          const rowSum = row.columns.reduce((sum, col) => {
+            const colWidth = col.cards.reduce((max, c) => Math.max(max, c.width || 12), 0);
+            return sum + colWidth;
+          }, 0);
           const remaining = 12 - rowSum;
 
           return (
@@ -570,8 +584,9 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
               {/* Row Cards Container */}
               <div className={styles.boardRowContainer}>
                 {row.columns.map((col, colIndex) => {
+                  const colWidth = col.cards.reduce((max, c) => Math.max(max, c.width || 12), 0);
                   const gridStyle = {
-                    gridColumn: `span ${col.width}`,
+                    gridColumn: `span ${colWidth}`,
                   };
 
                   return (
@@ -591,35 +606,17 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
                         setDragOverColumnId(null);
                       }}
                     >
-                      {/* Column Header (Width control pill) */}
-                      <div className={styles.columnHeader}>
-                        <div className={styles.widthBtnGroup}>
-                          {([3, 4, 6, 8, 12] as const).map((w) => {
-                            const label = w === 3 ? '25%' : w === 4 ? '33%' : w === 6 ? '50%' : w === 8 ? '66%' : '100%';
-                            return (
-                              <button
-                                key={w}
-                                type="button"
-                                className={`${styles.widthBtn} ${col.width === w ? styles.widthBtnActive : ''}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  changeColumnWidth(col.id, w);
-                                }}
-                                title={`Set column width to ${label}`}
-                              >
-                                {label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
                       {/* Stacked Cards inside this column */}
                       {col.cards.map((card) => {
+                        const cardStyle = {
+                          width: `${(card.width / colWidth) * 100}%`,
+                        };
+
                         return (
                           <div
                             key={card.id}
                             className={`${styles.boardCard} ${draggedCardId === card.id ? styles.cardDragging : ''} ${dragOverCardId === card.id ? styles.cardDragOver : ''}`}
+                            style={cardStyle}
                             onDragOver={(e) => {
                               e.preventDefault();
                               if (dragOverCardId !== card.id) setDragOverCardId(card.id);
@@ -639,7 +636,28 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
                               onDragStart={(e) => handleCardDragStart(e, card.id)}
                             >
                               <h3 className={styles.cardTitle}>{card.title}</h3>
-                              <span className={styles.cardDragHandle} title="Drag header to reorder">☰</span>
+                              <div className={styles.cardControls}>
+                                <div className={styles.widthBtnGroup}>
+                                  {([3, 4, 6, 8, 12] as const).map((w) => {
+                                    const label = w === 3 ? '25%' : w === 4 ? '33%' : w === 6 ? '50%' : w === 8 ? '66%' : '100%';
+                                    return (
+                                      <button
+                                        key={w}
+                                        type="button"
+                                        className={`${styles.widthBtn} ${card.width === w ? styles.widthBtnActive : ''}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          changeCardWidth(card.id, w);
+                                        }}
+                                        title={`Set card width to ${label}`}
+                                      >
+                                        {label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <span className={styles.cardDragHandle} title="Drag header to reorder">☰</span>
+                              </div>
                             </div>
 
                             {/* Card Body */}
