@@ -1,13 +1,43 @@
-/* ─── Base Container ───────────────────────────────────────────────────────── */
+/* ─── Light-Theme SaaS Design Tokens ───────────────────────────────────────── */
 .trackerContainer {
+  --saas-bg-base: #f7f8fa;
+  --saas-bg-surface: #ffffff;
+  --saas-bg-elevated: #fafbfc;
+  --saas-bg-card: #ffffff;
+  --saas-bg-input: #f3f4f6;
+  
+  --saas-border-subtle: #f0f2f5;
+  --saas-border-default: #e4e7eb;
+  --saas-border-strong: #d1d5db;
+
+  --saas-text-primary: #1a1d23;
+  --saas-text-secondary: #5c6470;
+  --saas-text-muted: #8a94a6;
+
+  --saas-accent-primary: #2563eb;
+  --saas-accent-secondary: #7c3aed;
+  --saas-accent-success: #10b981;
+  --saas-accent-warn: #f59e0b;
+  --saas-accent-danger: #ef4444;
+
+  --saas-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --saas-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.06);
+  --saas-shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.1);
+  --saas-radius-sm: 8px;
+  --saas-radius-md: 12px;
+  --saas-radius-lg: 20px;
+  --saas-radius-xl: 28px;
+
+  /* Layout */
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
   height: 100%;
   position: relative;
   font-family: var(--font-sans);
-  background: var(--bg-base);
-  color: var(--text-primary);
+  background: var(--saas-bg-base);
+  color: var(--saas-text-primary);
+  padding: var(--space-2);
 }
 
 /* ─── Audio Error Overlay ──────────────────────────────────────────────────── */
@@ -15,18 +45,18 @@
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(11, 12, 16, 0.9);
+  background: rgba(26, 29, 35, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
   animation: fadeIn 0.2s ease;
 }
 
 .audioErrorCard {
-  background: var(--bg-surface);
-  border: 1px solid rgba(248, 113, 113, 0.2);
-  border-radius: var(--radius-xl);
+  background: var(--saas-bg-surface);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--saas-radius-lg);
   padding: var(--space-8);
   max-width: 480px;
   width: 90%;
@@ -34,14 +64,14 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-4);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(248, 113, 113, 0.05);
+  box-shadow: var(--saas-shadow-lg);
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .audioErrorIcon {
   font-size: 32px;
-  color: var(--accent-danger);
-  background: rgba(248, 113, 113, 0.1);
+  color: var(--saas-accent-danger);
+  background: rgba(239, 68, 68, 0.08);
   padding: var(--space-3);
   border-radius: var(--radius-full);
   display: flex;
@@ -52,7 +82,7 @@
 .audioErrorTitle {
   font-size: 20px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--saas-text-primary);
   text-align: center;
   margin: 0;
   letter-spacing: -0.01em;
@@ -60,7 +90,7 @@
 
 .audioErrorDesc {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
   text-align: center;
   margin: 0;
   line-height: 1.6;
@@ -69,11 +99,11 @@
 .audioErrorMsg {
   font-family: var(--font-mono);
   font-size: 11px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-sm);
   padding: var(--space-3) var(--space-4);
-  color: var(--accent-danger);
+  color: var(--saas-accent-danger);
   word-break: break-all;
   width: 100%;
   text-align: left;
@@ -90,19 +120,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  background: var(--saas-bg-surface);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-lg);
   padding: var(--space-4) var(--space-6);
   flex-shrink: 0;
   gap: var(--space-4);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--saas-shadow-sm);
 }
 
 .sessionHeaderLeft {
   display: flex;
   align-items: center;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .sessionHeaderRight {
@@ -121,48 +151,48 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  background: var(--bg-elevated);
+  background: var(--saas-bg-elevated);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-full);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--saas-border-default);
 }
 
 .statusDot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--text-muted);
+  background: var(--saas-text-muted);
   flex-shrink: 0;
 }
 
 .statusRecording {
-  background: var(--accent-danger);
-  box-shadow: 0 0 12px var(--accent-danger);
+  background: var(--saas-accent-danger);
+  box-shadow: 0 0 12px var(--saas-accent-danger);
   animation: pulse 1.5s infinite;
 }
 
 .recordingLabel {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--saas-text-secondary);
 }
 
 .sessionTimer {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-mono);
-  color: var(--text-primary);
+  color: var(--saas-text-primary);
   letter-spacing: -0.02em;
-  background: var(--bg-elevated);
+  background: var(--saas-bg-elevated);
   padding: 4px var(--space-3);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
+  border-radius: var(--saas-radius-sm);
+  border: 1px solid var(--saas-border-default);
 }
 
 /* ─── Main Two-Column Layout ──────────────────────────────────────────────── */
 .trackerMain {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 360px;
   gap: var(--space-5);
   flex: 1;
   min-height: 0;
@@ -192,28 +222,28 @@
   justify-content: center;
   text-align: center;
   padding: var(--space-16) var(--space-8);
-  color: var(--text-secondary);
-  background: var(--bg-surface);
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-xl);
+  color: var(--saas-text-secondary);
+  background: var(--saas-bg-surface);
+  border: 1px dashed var(--saas-border-strong);
+  border-radius: var(--saas-radius-lg);
   gap: var(--space-3);
 }
 
 .emptyTimelineIcon {
-  color: var(--text-muted);
+  color: var(--saas-text-muted);
   margin-bottom: var(--space-2);
 }
 
 .emptyTimelineText {
   font-size: 15px;
-  font-weight: 500;
-  color: var(--text-primary);
+  font-weight: 600;
+  color: var(--saas-text-primary);
   margin: 0;
 }
 
 .emptyTimelineSub {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
   max-width: 320px;
   margin: 0;
   line-height: 1.5;
@@ -227,20 +257,21 @@
   gap: var(--space-2);
   width: 100%;
   padding: var(--space-4);
-  background: var(--bg-surface);
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-lg);
-  color: var(--text-secondary);
+  background: var(--saas-bg-surface);
+  border: 1.5px dashed var(--saas-border-default);
+  border-radius: var(--saas-radius-lg);
+  color: var(--saas-text-secondary);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: var(--saas-shadow-sm);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .addActivityBtn:hover {
-  border-color: var(--accent-primary);
-  color: var(--text-primary);
-  background: rgba(108, 142, 245, 0.04);
+  border-color: var(--saas-accent-primary);
+  color: var(--saas-accent-primary);
+  background: rgba(37, 99, 235, 0.04);
 }
 
 .addActivityPlus {
@@ -248,7 +279,7 @@
   line-height: 1;
 }
 
-/* ─── Activity Cards (SaaS Style) ────────────────────────────────────────── */
+/* ─── Activity Cards (SaaS Light Style) ────────────────────────────────────── */
 .activityTimeline {
   display: flex;
   flex-direction: column;
@@ -256,12 +287,12 @@
 }
 
 .activityCard {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  background: var(--saas-bg-surface);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-lg);
   padding: var(--space-5) var(--space-6);
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: var(--saas-shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -271,23 +302,25 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 3px;
+  width: 4px;
   height: 100%;
-  background: var(--border-strong);
+  background: var(--saas-border-strong);
 }
 
-/* Accent Indicators */
-.activityCardAttendance::after { background: var(--accent-success); }
-.activityCardGSL::after        { background: var(--accent-secondary); }
-.activityCardModCoc::after     { background: var(--accent-warn); }
-.activityCardUnmod::after      { background: var(--accent-primary); }
+/* Rounded card indicators */
+.activityCardAttendance::after { background: var(--saas-accent-success); }
+.activityCardGSL::after        { background: var(--saas-accent-secondary); }
+.activityCardModCoc::after     { background: var(--saas-accent-warn); }
+.activityCardUnmod::after      { background: var(--saas-accent-primary); }
 
 .activityCardCompleted {
-  background: rgba(17, 19, 24, 0.4);
+  background: var(--saas-bg-surface);
+  opacity: 0.95;
 }
 
 .activityCardCompleted:hover {
-  border-color: var(--border-default);
+  box-shadow: var(--saas-shadow-md);
+  transform: translateY(-1px);
 }
 
 .activityCardHeader {
@@ -311,45 +344,47 @@
   gap: 8px;
   font-size: 11px;
   font-weight: 600;
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  letter-spacing: 0.04em;
+  padding: 5px 14px;
+  border-radius: var(--saas-radius-sm);
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   border: 1px solid transparent;
 }
 
-.badgeAttendance { background: rgba(52, 211, 153, 0.08); color: var(--accent-success); border-color: rgba(52, 211, 153, 0.15); }
-.badgeGSL        { background: rgba(167, 139, 250, 0.08); color: var(--accent-secondary); border-color: rgba(167, 139, 250, 0.15); }
-.badgeModCoc     { background: rgba(251, 191, 36, 0.08); color: var(--accent-warn); border-color: rgba(251, 191, 36, 0.15); }
-.badgeUnmod      { background: rgba(108, 142, 245, 0.08); color: var(--accent-primary); border-color: rgba(108, 142, 245, 0.15); }
+.badgeAttendance { background: rgba(16, 185, 129, 0.08); color: #047857; border-color: rgba(16, 185, 129, 0.15); }
+.badgeGSL        { background: rgba(124, 58, 237, 0.08); color: #6d28d9; border-color: rgba(124, 58, 237, 0.15); }
+.badgeModCoc     { background: rgba(245, 158, 11, 0.08); color: #b45309; border-color: rgba(245, 158, 11, 0.15); }
+.badgeUnmod      { background: rgba(37, 99, 235, 0.08); color: #1d4ed8; border-color: rgba(37, 99, 235, 0.15); }
 
 .activityTimestamp {
   font-size: 11px;
   font-family: var(--font-mono);
-  color: var(--text-muted);
+  color: var(--saas-text-muted);
+  font-weight: 500;
 }
 
 .closeActivityBtn {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  border-radius: var(--saas-radius-sm);
 }
 
 .outcomeBadge {
   font-size: 10px;
-  font-weight: 600;
-  padding: 2px 8px;
+  font-weight: 700;
+  padding: 3px 10px;
   border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: 0.02em;
   border: 1px solid transparent;
 }
 
-.outcomePassed { background: rgba(52, 211, 153, 0.08); color: var(--accent-success); border-color: rgba(52, 211, 153, 0.15); }
-.outcomeFailed { background: rgba(248, 113, 113, 0.08); color: var(--accent-danger); border-color: rgba(248, 113, 113, 0.15); }
+.outcomePassed { background: rgba(16, 185, 129, 0.08); color: #047857; border-color: rgba(16, 185, 129, 0.15); }
+.outcomeFailed { background: rgba(239, 68, 68, 0.08); color: #b91c1c; border-color: rgba(239, 68, 68, 0.15); }
 
 .completedSummary {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
   margin: 0;
   line-height: 1.6;
 }
@@ -358,12 +393,12 @@
 .attendanceTable {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 1px;
   max-height: 380px;
   overflow-y: auto;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-md);
+  background: var(--saas-bg-elevated);
 }
 
 .attendanceRow {
@@ -371,7 +406,8 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--saas-border-subtle);
+  background: var(--saas-bg-surface);
 }
 
 .attendanceRow:last-child {
@@ -380,8 +416,8 @@
 
 .attendanceCountryName {
   font-size: 13.5px;
-  color: var(--text-primary);
-  font-weight: 500;
+  color: var(--saas-text-primary);
+  font-weight: 600;
   flex: 1;
 }
 
@@ -392,31 +428,32 @@
 
 .attendanceBtn {
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
+  border-radius: var(--saas-radius-sm);
+  border: 1px solid var(--saas-border-default);
+  background: var(--saas-bg-surface);
+  color: var(--saas-text-secondary);
   font-size: 11px;
-  font-weight: 600;
-  min-width: 38px;
+  font-weight: 700;
+  min-width: 42px;
   text-align: center;
   transition: all 0.15s ease;
 }
 
 .attendanceBtn:hover {
-  border-color: var(--border-strong);
-  color: var(--text-primary);
+  border-color: var(--saas-border-strong);
+  color: var(--saas-text-primary);
+  background: var(--saas-bg-elevated);
 }
 
 .attendanceBtnActive {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
+  background: var(--saas-accent-primary);
+  border-color: var(--saas-accent-primary);
   color: #fff;
 }
 
 .attendanceBtnActive:hover {
-  background: #7da0ff;
-  border-color: #7da0ff;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
   color: #fff;
 }
 
@@ -425,9 +462,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-md);
   padding: var(--space-5);
 }
 
@@ -441,7 +478,7 @@
   display: flex;
   gap: var(--space-3);
   margin-top: var(--space-2);
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--saas-border-default);
   padding-top: var(--space-4);
 }
 
@@ -457,33 +494,33 @@
 }
 
 .durationPill {
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: var(--saas-radius-sm);
+  border: 1px solid var(--saas-border-default);
+  background: var(--saas-bg-surface);
+  color: var(--saas-text-secondary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .durationPill:hover {
-  border-color: var(--border-strong);
-  color: var(--text-primary);
+  border-color: var(--saas-border-strong);
+  color: var(--saas-text-primary);
 }
 
 .durationPillActive {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
+  background: var(--saas-accent-primary);
+  border-color: var(--saas-accent-primary);
   color: #fff;
 }
 
 /* ─── Speaker Phase ────────────────────────────────────────────────────────── */
 .prevSpeakers {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-md);
   padding: var(--space-4);
   margin-bottom: var(--space-4);
 }
@@ -493,7 +530,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-muted);
+  color: var(--saas-text-muted);
   margin-bottom: var(--space-3);
 }
 
@@ -502,7 +539,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--saas-border-subtle);
 }
 
 .prevSpeakerRow:last-child {
@@ -510,33 +547,34 @@
 }
 
 .prevSpeakerNum {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 11.5px;
+  color: var(--saas-text-muted);
   width: 16px;
   font-family: var(--font-mono);
 }
 
 .prevSpeakerName {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--saas-text-primary);
 }
 
 .prevSpeakerTime {
   font-size: 11px;
   font-family: var(--font-mono);
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
   margin-left: auto;
+  font-weight: 500;
 }
 
 .prevSpeakerPointsTag {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   padding: 2px 8px;
   border-radius: var(--radius-full);
-  background: rgba(108, 142, 245, 0.08);
-  color: var(--accent-primary);
-  border: 1px solid rgba(108, 142, 245, 0.15);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--saas-accent-primary);
+  border: 1px solid rgba(37, 99, 235, 0.15);
 }
 
 .speakerEntry {
@@ -549,17 +587,17 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-md);
   padding: var(--space-5);
 }
 
-/* ─── Premium Timer Console ────────────────────────────────────────────────── */
+/* ─── Premium Timer Console (Light Redesign) ───────────────────────────────── */
 .speakerTimerDisplay {
-  background: linear-gradient(180deg, var(--bg-elevated) 0%, rgba(24, 28, 36, 0.4) 100%);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--saas-bg-elevated) 0%, rgba(250, 251, 252, 0.4) 100%);
+  border: 1.5px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-lg);
   padding: var(--space-6) var(--space-8);
   display: flex;
   flex-direction: column;
@@ -567,60 +605,58 @@
   gap: var(--space-3);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--saas-shadow-sm);
 }
 
 .speakerTimerTime {
   font-size: 56px;
   font-weight: 700;
   font-family: var(--font-mono);
-  color: var(--text-primary);
+  color: var(--saas-text-primary);
   line-height: 1;
   letter-spacing: -0.04em;
-  text-shadow: 0 0 20px rgba(240, 242, 248, 0.15);
 }
 
 .speakerTimerWarning .speakerTimerTime {
-  color: var(--accent-warn);
-  text-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+  color: var(--saas-accent-warn);
 }
 
 .speakerTimerExpired .speakerTimerTime {
-  color: var(--accent-danger);
-  text-shadow: 0 0 20px rgba(248, 113, 113, 0.3);
+  color: var(--saas-accent-danger);
   animation: shake 0.5s ease-in-out infinite;
 }
 
 .speakerTimerName {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--saas-text-secondary);
 }
 
 .speakerTimerToggle {
   display: flex;
   gap: 2px;
-  background: var(--bg-surface);
+  background: var(--saas-bg-input);
   border-radius: var(--radius-full);
   padding: 3px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--saas-border-default);
 }
 
 .timerModeBtn {
-  padding: 4px 14px;
+  padding: 5px 16px;
   border-radius: var(--radius-full);
   border: none;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .timerModeBtnActive {
-  background: var(--accent-primary);
+  background: var(--saas-accent-primary);
   color: #fff;
+  box-shadow: var(--saas-shadow-sm);
 }
 
 /* ─── Custom Inputs / Form Elements ────────────────────────────────────────── */
@@ -628,19 +664,21 @@
   resize: vertical;
   min-height: 110px;
   line-height: 1.6;
-  font-size: 14px;
-  border-color: var(--border-default);
-  background: var(--bg-elevated);
+  font-size: 14.5px;
+  border-color: var(--saas-border-default);
+  background: var(--saas-bg-surface);
+  color: var(--saas-text-primary);
 }
 
 .speechTextarea:focus {
-  border-color: var(--accent-primary);
+  border-color: var(--saas-accent-primary);
+  background: var(--saas-bg-surface);
 }
 
 .speakerActions {
   display: flex;
   gap: var(--space-3);
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--saas-border-default);
   padding-top: var(--space-4);
 }
 
@@ -656,52 +694,52 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-md);
   padding: var(--space-3) var(--space-4);
   font-size: 13px;
 }
 
 .pointTypeBadge {
   font-size: 10px;
-  font-weight: 600;
-  padding: 2px 8px;
+  font-weight: 700;
+  padding: 2.5px 8.5px;
   border-radius: var(--radius-full);
-  background: rgba(108, 142, 245, 0.08);
-  color: var(--accent-primary);
-  border: 1px solid rgba(108, 142, 245, 0.15);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--saas-accent-primary);
+  border: 1px solid rgba(37, 99, 235, 0.15);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 
 .pointRaisedBy {
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 700;
+  color: var(--saas-text-primary);
 }
 
 .pointContent {
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
   flex: 1;
 }
 
 .pointAnswer {
   width: 100%;
-  color: var(--text-muted);
+  color: var(--saas-text-muted);
   font-style: italic;
   padding-left: var(--space-3);
-  border-left: 2px solid var(--border-subtle);
+  border-left: 2px solid var(--saas-border-default);
   margin-top: 4px;
 }
 
 .addPointBtn {
   align-self: flex-start;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--accent-primary);
-  background: rgba(108, 142, 245, 0.05);
-  border: 1px solid rgba(108, 142, 245, 0.15);
-  border-radius: var(--radius-sm);
+  font-weight: 600;
+  color: var(--saas-accent-primary);
+  background: rgba(37, 99, 235, 0.05);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: var(--saas-radius-sm);
   padding: var(--space-2) var(--space-4);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -711,14 +749,14 @@
 }
 
 .addPointBtn:hover {
-  background: rgba(108, 142, 245, 0.12);
-  border-color: var(--accent-primary);
+  background: rgba(37, 99, 235, 0.1);
+  border-color: var(--saas-accent-primary);
 }
 
 .pointFormInline {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-md);
   padding: var(--space-4) var(--space-5);
   display: flex;
   flex-direction: column;
@@ -735,28 +773,29 @@
   display: flex;
   gap: var(--space-2);
   justify-content: flex-end;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--saas-border-default);
   padding-top: var(--space-3);
 }
 
 .pointContentArea {
   resize: vertical;
   min-height: 60px;
-  background: var(--bg-surface);
+  background: var(--saas-bg-surface);
 }
 
-/* ─── Recording Console Panel (SaaS Style) ────────────────────────────────── */
+/* ─── Recording Console Panel ─────────────────────────────────────────────── */
 .playbackCard {
   padding: var(--space-5) var(--space-6);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-sm);
+  background: var(--saas-bg-surface);
+  border: 1px solid var(--saas-border-default);
+  box-shadow: var(--saas-shadow-sm);
+  border-radius: var(--saas-radius-lg);
 }
 
 .audioColTitle {
   font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-weight: 700;
+  color: var(--saas-text-secondary);
   margin: 0 0 var(--space-3) 0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -766,7 +805,7 @@
 }
 
 .audioColTitle svg {
-  color: var(--text-muted);
+  color: var(--saas-text-muted);
 }
 
 .playerTop {
@@ -786,27 +825,28 @@
 .timeLabel {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
   flex-shrink: 0;
+  font-weight: 500;
 }
 
 .seekBar {
   flex: 1;
   height: 4px;
   cursor: pointer;
-  accent-color: var(--accent-primary);
-  background: var(--bg-elevated);
+  accent-color: var(--saas-accent-primary);
+  background: var(--saas-bg-input);
   border-radius: var(--radius-full);
 }
 
 .playerSpeedControl {
   display: flex;
   align-items: center;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--saas-border-default);
   padding-top: var(--space-3);
 }
 
-/* Dynamic Live Visualizer block (super neat) */
+/* Dynamic Live Visualizer block (Light Design) */
 .recordingIndicatorCard {
   display: flex;
   flex-direction: column;
@@ -815,24 +855,24 @@
   gap: var(--space-3);
   padding: var(--space-8) var(--space-5);
   text-align: center;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: var(--saas-bg-surface);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-lg);
+  box-shadow: var(--saas-shadow-sm);
 }
 
 .visualizerWaveform {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   height: 24px;
   margin-bottom: var(--space-2);
 }
 
 .visualizerBar {
-  width: 3px;
+  width: 3.5px;
   height: 6px;
-  background: var(--accent-danger);
+  background: var(--saas-accent-danger);
   border-radius: var(--radius-full);
   animation: soundWave 1.2s ease-in-out infinite;
 }
@@ -845,31 +885,34 @@
 
 .recordingLiveText {
   font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  color: var(--saas-text-primary);
 }
 
 .recordingLiveSub {
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 12.5px;
+  color: var(--saas-text-secondary);
 }
 
-/* ─── Global Points Audit Feed ────────────────────────────────────────────── */
+/* ─── Global Points Audit Feed (SaaS Comment-Style Redesign) ──────────────── */
 .globalPointsLog {
   padding: var(--space-5) var(--space-6);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-sm);
+  background: var(--saas-bg-surface);
+  border: 1px solid var(--saas-border-default);
+  box-shadow: var(--saas-shadow-sm);
+  border-radius: var(--saas-radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .globalPointLogRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 12.5px;
+  border-bottom: 1px solid var(--saas-border-subtle);
+  font-size: 13px;
 }
 
 .globalPointLogRow:last-child {
@@ -879,14 +922,14 @@
 .globalPointTime {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--saas-text-muted);
   white-space: nowrap;
+  margin-top: 2px;
 }
 
 .globalPointRaisedBy {
-  color: var(--text-primary);
-  font-weight: 500;
-  white-space: nowrap;
+  color: var(--saas-text-primary);
+  font-weight: 700;
 }
 
 /* ─── Custom Premium Modal Overlay ─────────────────────────────────────────── */
@@ -894,7 +937,7 @@
   position: fixed;
   inset: 0;
   z-index: 999;
-  background: rgba(11, 12, 16, 0.7);
+  background: rgba(26, 29, 35, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -904,9 +947,9 @@
 }
 
 .activityPickerModal {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xl);
+  background: var(--saas-bg-surface);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-lg);
   padding: var(--space-6) var(--space-8);
   width: 100%;
   max-width: 520px;
@@ -914,13 +957,13 @@
   flex-direction: column;
   align-items: center;
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8);
+  box-shadow: var(--saas-shadow-lg);
 }
 
 .modalTitle {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--saas-text-primary);
   margin: 0 0 var(--space-5) 0;
   text-align: center;
   letter-spacing: -0.01em;
@@ -928,7 +971,7 @@
 
 .modalSubtitle {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
   margin: -16px 0 var(--space-4) 0;
 }
 
@@ -938,15 +981,15 @@
   justify-content: flex-end;
   margin-top: var(--space-5);
   width: 100%;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--saas-border-default);
   padding-top: var(--space-4);
 }
 
 .globalPointTimestamp {
   font-family: var(--font-mono);
   font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 400;
+  color: var(--saas-text-secondary);
+  font-weight: 500;
 }
 
 /* ─── Activity Type Picker Grid ────────────────────────────────────────────── */
@@ -963,45 +1006,45 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-6) var(--space-4);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-md);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .activityTypeCard:hover {
-  border-color: var(--accent-primary);
-  background: rgba(108, 142, 245, 0.06);
+  border-color: var(--saas-accent-primary);
+  background: rgba(37, 99, 235, 0.05);
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--saas-shadow-md);
 }
 
 .activityTypeIcon {
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
   margin-bottom: var(--space-1);
 }
 
 .activityTypeCard:hover .activityTypeIcon {
-  color: var(--accent-primary);
+  color: var(--saas-accent-primary);
 }
 
 .activityTypeLabel {
   font-size: 14.5px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--saas-text-primary);
 }
 
 .activityTypeSub {
   font-size: 11.5px;
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
 }
 
 /* ─── Global Point Modal ───────────────────────────────────────────────────── */
 .globalPointModal {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xl);
+  background: var(--saas-bg-surface);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-lg);
   padding: var(--space-6) var(--space-8);
   width: 100%;
   max-width: 480px;
@@ -1009,7 +1052,7 @@
   flex-direction: column;
   gap: var(--space-4);
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8);
+  box-shadow: var(--saas-shadow-lg);
 }
 
 /* ─── Global Point FAB ─────────────────────────────────────────────────────── */
@@ -1021,19 +1064,19 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: var(--accent-primary);
+  background: var(--saas-accent-primary);
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 20px rgba(108, 142, 245, 0.3);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
 }
 
 .globalPointFAB:hover {
   transform: scale(1.08) translateY(-2px);
-  box-shadow: 0 10px 28px rgba(108, 142, 245, 0.45);
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.45);
 }
 
 .globalPointFAB:active {
@@ -1053,7 +1096,7 @@
   position: absolute;
   inset: -3px;
   border-radius: 50%;
-  border: 2px solid rgba(108, 142, 245, 0.3);
+  border: 2px solid rgba(37, 99, 235, 0.2);
   animation: fabRing 2s infinite;
 }
 
@@ -1069,16 +1112,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-sm);
   padding: var(--space-2) var(--space-4);
 }
 
 .delegateSelectedName {
   font-size: 13.5px;
-  font-weight: 500;
-  color: var(--text-primary);
+  font-weight: 600;
+  color: var(--saas-text-primary);
 }
 
 .delegateSearchBox {
@@ -1091,11 +1134,11 @@
   left: 0;
   right: 0;
   z-index: 100;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
+  background: var(--saas-bg-surface);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-sm);
   overflow: hidden;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--saas-shadow-md);
   max-height: 200px;
   overflow-y: auto;
 }
@@ -1105,24 +1148,25 @@
   text-align: left;
   padding: var(--space-3) var(--space-4);
   font-size: 13.5px;
-  color: var(--text-primary);
+  color: var(--saas-text-primary);
   background: transparent;
   border: none;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
+  font-weight: 500;
 }
 
 .delegateOption:hover,
 .delegateOptionActive {
-  background: rgba(108, 142, 245, 0.08);
-  color: var(--accent-primary);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--saas-accent-primary);
 }
 
 .delegateNoResults {
   display: block;
   padding: var(--space-4);
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--saas-text-secondary);
   text-align: center;
 }
 

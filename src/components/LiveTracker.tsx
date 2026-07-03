@@ -183,6 +183,47 @@ const IconAudio = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
 );
 
+// ─── Country Avatar (matches SaaS dashboard avatar rows) ─────────────────────
+const AVATAR_GRADIENTS = [
+  ['#a1c4fd', '#c2e9fb'],
+  ['#84fab0', '#8fd3f4'],
+  ['#fccb90', '#d57edc'],
+  ['#f6d365', '#fda085'],
+  ['#a18cd1', '#fbc2eb'],
+  ['#d4fc79', '#96e6a1'],
+  ['#ffecd2', '#fcb69f'],
+  ['#89f7fe', '#66a6ff'],
+];
+
+function CountryAvatar({ name, size = 28 }: { name: string; size?: number }) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  const [c1, c2] = AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+  const initial = name.slice(0, 2).toUpperCase();
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`,
+        color: '#1a1d23',
+        fontSize: size * 0.38,
+        fontWeight: 700,
+        fontFamily: 'var(--font-mono)',
+        flexShrink: 0,
+        boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.55), 0 1px 3px rgba(0,0,0,0.07)',
+        letterSpacing: '-0.02em',
+      }}
+    >
+      {initial}
+    </span>
+  );
+}
+
 function DelegateSelect({
   label,
   countries,
@@ -360,35 +401,60 @@ function CompletedActivityCard({
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
         </div>
-        <p className={styles.completedSummary}>
-          {present + pv} Present · {pv} P+V · {absent} Absent
-        </p>
+        <div style={{ display: 'flex', gap: 24, marginTop: 4 }}>
+          <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)' }}>
+            <strong style={{ color: 'var(--saas-text-primary)', fontSize: 15 }}>{present + pv}</strong> Present
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)' }}>
+            <strong style={{ color: 'var(--saas-accent-warn)', fontSize: 15 }}>{pv}</strong> P+V
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)' }}>
+            <strong style={{ color: 'var(--saas-accent-danger)', fontSize: 15 }}>{absent}</strong> Absent
+          </span>
+        </div>
       </div>
     );
   }
 
   if (activity.type === 'gsl') {
     const gsl = activity as GSLActivity;
+    const gslSpeakerNames = gsl.speakers.slice(0, 4).map((s) => getName(s.countryId));
     return (
       <div className={`${styles.activityCard} ${styles.activityCardGSL} ${styles.activityCardCompleted}`}>
         <div className={styles.activityCardHeader}>
           <span className={`${styles.activityBadge} ${styles.badgeGSL}`}>
             <IconGsl /> GSL
           </span>
-          <span
-            className={`${styles.outcomeBadge} ${
-              gsl.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed
-            }`}
-          >
+          <span className={`${styles.outcomeBadge} ${gsl.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed}`}>
             {gsl.outcome === 'passed' ? 'Passed' : 'Failed'}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
         </div>
         {gsl.outcome === 'passed' && (
-          <p className={styles.completedSummary}>
-            Raised by {getName(gsl.raisedBy)} · {gsl.speakers.length} speaker
-            {gsl.speakers.length !== 1 ? 's' : ''}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CountryAvatar name={getName(gsl.raisedBy)} />
+              <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)' }}>
+                Raised by <strong style={{ color: 'var(--saas-text-primary)' }}>{getName(gsl.raisedBy)}</strong>
+              </span>
+            </div>
+            <span style={{ color: 'var(--saas-border-strong)', fontSize: 12 }}>·</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {gslSpeakerNames.map((n, i) => (
+                <span key={i} style={{ marginLeft: i === 0 ? 0 : -6 }}>
+                  <CountryAvatar name={n} size={22} />
+                </span>
+              ))}
+              {gsl.speakers.length > 4 && (
+                <span style={{ fontSize: 11, color: 'var(--saas-text-muted)', marginLeft: 6, fontWeight: 600 }}>
+                  +{gsl.speakers.length - 4}
+                </span>
+              )}
+              <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)', marginLeft: 8 }}>
+                {gsl.speakers.length} speaker{gsl.speakers.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </div>
         )}
       </div>
     );
@@ -396,28 +462,39 @@ function CompletedActivityCard({
 
   if (activity.type === 'mod_coc') {
     const mc = activity as ModCocActivity;
+    const mcSpeakerNames = mc.speakers.slice(0, 4).map((s) => getName(s.countryId));
     return (
       <div className={`${styles.activityCard} ${styles.activityCardModCoc} ${styles.activityCardCompleted}`}>
         <div className={styles.activityCardHeader}>
           <span className={`${styles.activityBadge} ${styles.badgeModCoc}`}>
             <IconModCoc /> Mod Coc
           </span>
-          <span
-            className={`${styles.outcomeBadge} ${
-              mc.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed
-            }`}
-          >
+          <span className={`${styles.outcomeBadge} ${mc.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed}`}>
             {mc.outcome === 'passed' ? 'Passed' : 'Failed'}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
         </div>
-        {mc.outcome === 'passed' && (
-          <p className={styles.completedSummary}>
-            {mc.topic} · {mc.speakers.length} speaker{mc.speakers.length !== 1 ? 's' : ''}
+        {mc.topic && (
+          <p style={{ fontSize: 13.5, color: 'var(--saas-text-primary)', fontWeight: 600, margin: '6px 0 6px 0' }}>
+            {mc.topic}
           </p>
         )}
-        {mc.outcome === 'failed' && mc.topic && (
-          <p className={styles.completedSummary}>Topic: {mc.topic}</p>
+        {mc.outcome === 'passed' && mc.speakers.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {mcSpeakerNames.map((n, i) => (
+              <span key={i} style={{ marginLeft: i === 0 ? 0 : -6 }}>
+                <CountryAvatar name={n} size={22} />
+              </span>
+            ))}
+            {mc.speakers.length > 4 && (
+              <span style={{ fontSize: 11, color: 'var(--saas-text-muted)', marginLeft: 4, fontWeight: 600 }}>
+                +{mc.speakers.length - 4}
+              </span>
+            )}
+            <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)', marginLeft: 8 }}>
+              {mc.speakers.length} speaker{mc.speakers.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         )}
       </div>
     );
@@ -434,19 +511,21 @@ function CompletedActivityCard({
             <IconUnmod /> Unmod Coc
           </span>
           {uc.outcome && (
-            <span
-              className={`${styles.outcomeBadge} ${
-                uc.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed
-              }`}
-            >
+            <span className={`${styles.outcomeBadge} ${uc.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed}`}>
               {uc.outcome === 'passed' ? 'Passed' : 'Failed'}
             </span>
           )}
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
         </div>
-        <p className={styles.completedSummary}>
-          Raised by {uc.raisedBy ? getName(uc.raisedBy) : 'Unknown'} · Duration: {label}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+          {uc.raisedBy && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CountryAvatar name={getName(uc.raisedBy)} />
+              <strong style={{ fontSize: 13, color: 'var(--saas-text-primary)' }}>{getName(uc.raisedBy)}</strong>
+            </div>
+          )}
+          <span style={{ fontSize: 13, color: 'var(--saas-text-muted)', background: 'var(--saas-bg-elevated)', padding: '2px 10px', borderRadius: 20, border: '1px solid var(--saas-border-default)' }}>{label}</span>
+        </div>
       </div>
     );
   }
@@ -1056,17 +1135,19 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
             {activity.speakers.map((sp, i) => (
               <div key={sp.id} className={styles.prevSpeakerRow}>
                 <span className={styles.prevSpeakerNum}>{i + 1}.</span>
+                <CountryAvatar name={getName(sp.countryId)} size={24} />
                 <span className={styles.prevSpeakerName}>{getName(sp.countryId)}</span>
-                <span className={styles.prevSpeakerTime}>[+{formatTime(sp.speechStartOffset)}]</span>
+                <span className={styles.prevSpeakerTime}>{formatTime(sp.speechStartOffset)}</span>
                 {sp.points.length > 0 && (
                   <span className={styles.prevSpeakerPointsTag}>
-                    {sp.points.length} pt
+                    {sp.points.length} pt{sp.points.length !== 1 ? 's' : ''}
                   </span>
                 )}
               </div>
             ))}
           </div>
         )}
+
 
         {/* Current speaker entry */}
         <div className={styles.speakerEntry}>
@@ -1765,21 +1846,38 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
             )
           )}
 
-          {/* Global points log */}
+          {/* Global points log — comment-feed style */}
           {sessionData.globalPoints.length > 0 && (
             <div className={styles.globalPointsLog}>
               <h4 className={styles.audioColTitle}>
                 <IconBolt /> Global Points Feed
               </h4>
-              {sessionData.globalPoints.map((pt) => (
-                <div key={pt.id} className={styles.globalPointLogRow}>
-                  <span className={styles.globalPointTime}>[+{formatTime(pt.raisedAtOffset)}]</span>
-                  <span className={styles.pointTypeBadge}>{POINT_LABELS[pt.type]}</span>
-                  <span className={styles.globalPointRaisedBy}>{getName(pt.raisedBy)}</span>
-                </div>
-              ))}
+              {sessionData.globalPoints.map((pt) => {
+                const pName = getName(pt.raisedBy);
+                return (
+                  <div key={pt.id} className={styles.globalPointLogRow}>
+                    <CountryAvatar name={pName} size={30} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+                        <span className={styles.globalPointRaisedBy}>{pName}</span>
+                        <span className={styles.pointTypeBadge}>{POINT_LABELS[pt.type]}</span>
+                        <span className={styles.globalPointTime}>{formatTime(pt.raisedAtOffset)}</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 13, color: 'var(--saas-text-secondary)', lineHeight: 1.5 }}>
+                        {pt.content}
+                      </p>
+                      {pt.answer && (
+                        <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--saas-text-muted)', fontStyle: 'italic', paddingLeft: 10, borderLeft: '2px solid var(--saas-border-default)' }}>
+                          {pt.answer}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
+
         </div>
       </div>
 
