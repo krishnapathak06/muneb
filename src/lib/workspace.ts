@@ -7,6 +7,7 @@ const WORKSPACES_DIR = path.join(process.cwd(), 'workspaces');
 export type WorkspaceStatus =
   | 'intake'
   | 'sub-issues'
+  | 'indicators'
   | 'researching'
   | 'done';
 
@@ -17,6 +18,8 @@ export interface WorkspaceMeta {
   agenda: string;
   createdAt: string;
   status: WorkspaceStatus;
+  countries?: string[];
+  subIssues?: { id: string; title: string; description: string }[];
 }
 
 function ensureWorkspacesDir() {

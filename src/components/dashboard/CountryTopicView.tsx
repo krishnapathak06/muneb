@@ -25,6 +25,12 @@ interface TopicData {
   recent_shifts: string;
   confidence: ConfidenceLevel;
   sources: Source[];
+  indicator_values?: {
+    indicatorId: string;
+    value: string | null;
+    status: 'found' | 'insufficient_sourcing' | 'not_applicable';
+    verified: boolean;
+  }[];
 }
 
 interface Props {
@@ -50,20 +56,123 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
   const [expandedSources, setExpandedSources] = useState(false);
   const [expandedRaw, setExpandedRaw] = useState<number | null>(null);
 
+  // Indicators state
+  const [indicatorsList, setIndicatorsList] = useState<{ id: string; label: string; description: string }[]>([]);
+  const [layoutConfig, setLayoutConfig] = useState<{ indicatorId: string; visible: boolean; order: number }[]>([]);
+  const [isEditingLayout, setIsEditingLayout] = useState(false);
+  const [showNA, setShowNA] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
   useEffect(() => {
     setLoading(true);
     setData(null);
     setExpandedRaw(null);
+    setIsEditingLayout(false);
+
+    const topicKey = topicId === 'main' ? 'main' : `subissue_${topicId}`;
     const fileName = topicId === 'main' ? 'main_agenda' : `subissue_${topicId}`;
+
+    // 1. Fetch research data
     fetch(`/api/workspace-data/${workspaceId}/research/${countryId}/${fileName}`)
       .then((r) => r.json())
       .then((d) => {
-        // The file IS the data (not wrapped in .data)
         if (d && !d.error) setData(d);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    // 2. Fetch indicators definitions
+    fetch(`/api/workspace-data/${workspaceId}/indicators.json`)
+      .then((r) => r.json())
+      .then((d) => {
+        const list = d ? d[topicKey] || [] : [];
+        setIndicatorsList(list);
+      })
+      .catch(() => setIndicatorsList([]));
+
+    // 3. Fetch layout config
+    fetch(`/api/layout?workspaceId=${workspaceId}&topicKey=${topicKey}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setLayoutConfig(d || []);
+      })
+      .catch(() => setLayoutConfig([]));
   }, [workspaceId, countryId, topicId]);
+
+  // Derived sorted indicators
+  const sortedIndicators = [...indicatorsList]
+    .map((ind, i) => {
+      const layout = layoutConfig.find((l) => l.indicatorId === ind.id) || { visible: true, order: i };
+      return { ...ind, visible: layout.visible, order: layout.order };
+    })
+    .sort((a, b) => a.order - b.order);
+
+  async function saveLayout(updatedLayout: typeof layoutConfig) {
+    const topicKey = topicId === 'main' ? 'main' : `subissue_${topicId}`;
+    try {
+      await fetch('/api/layout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId,
+          topicKey,
+          layout: updatedLayout,
+        }),
+      });
+    } catch (e) {
+      console.error('[Layout] Failed to save layout:', e);
+    }
+  }
+
+  const toggleVisibility = (id: string) => {
+    const updated = sortedIndicators.map((ind) =>
+      ind.id === id ? { ...ind, visible: !ind.visible } : ind
+    );
+    const updatedLayout = updated.map((ind, idx) => ({
+      indicatorId: ind.id,
+      visible: ind.visible,
+      order: idx,
+    }));
+    setLayoutConfig(updatedLayout);
+    saveLayout(updatedLayout);
+  };
+
+  const shiftOrder = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= sortedIndicators.length) return;
+
+    const newIndicators = [...sortedIndicators];
+    [newIndicators[index], newIndicators[targetIndex]] = [newIndicators[targetIndex], newIndicators[index]];
+
+    const updatedLayout = newIndicators.map((ind, idx) => ({
+      indicatorId: ind.id,
+      visible: ind.visible,
+      order: idx,
+    }));
+    setLayoutConfig(updatedLayout);
+    saveLayout(updatedLayout);
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+    const newIndicators = [...sortedIndicators];
+    const [movedItem] = newIndicators.splice(draggedIndex, 1);
+    newIndicators.splice(index, 0, movedItem);
+
+    const updatedLayout = newIndicators.map((ind, idx) => ({
+      indicatorId: ind.id,
+      visible: ind.visible,
+      order: idx,
+    }));
+    setLayoutConfig(updatedLayout);
+    saveLayout(updatedLayout);
+    setDraggedIndex(null);
+  };
 
   if (loading) {
     return (
@@ -108,6 +217,119 @@ export default function CountryTopicView({ workspaceId, countryId, countryName, 
         <div className="alert alert-danger" style={{ marginBottom: 16 }}>
           ⚠ Insufficient sourcing detected — verify this section manually before citing in committee.
         </div>
+      )}
+
+      {/* Indicators Section */}
+      {sortedIndicators.length > 0 && (
+        <section className={`card ${styles.section}`}>
+          <div className={styles.indicatorsHeader}>
+            <h3 className={styles.sectionTitle} style={{ margin: 0 }}>📊 Topic Indicators</h3>
+            <div className={styles.indicatorControls}>
+              <button
+                className={`btn btn-ghost btn-sm ${isEditingLayout ? 'text-primary' : ''}`}
+                style={{ fontSize: 12, padding: '4px 8px' }}
+                onClick={() => setIsEditingLayout(!isEditingLayout)}
+              >
+                ⚙️ {isEditingLayout ? 'Exit Layout Edit' : 'Edit Layout'}
+              </button>
+              <label className={styles.checkboxLabel} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <input
+                  type="checkbox"
+                  checked={showNA}
+                  onChange={(e) => setShowNA(e.target.checked)}
+                />
+                Show N/A Indicators
+              </label>
+            </div>
+          </div>
+
+          <div className={styles.indicatorsGrid}>
+            {sortedIndicators.map((ind, idx) => {
+              // Retrieve value for this indicator
+              const val = (data?.indicator_values || []).find((v: any) => v.indicatorId === ind.id) || {
+                value: null,
+                status: 'insufficient_sourcing' as const,
+                verified: false,
+              };
+
+              // Skip rendering if not visible (and we are not editing layout)
+              if (!ind.visible && !isEditingLayout) return null;
+
+              // Hide not applicable if showNA is false (and we are not editing layout)
+              const isNA = val.status === 'not_applicable';
+              if (isNA && !showNA && !isEditingLayout) return null;
+
+              let cardClass = styles.indicatorCard;
+              let statusLabel = 'Found';
+              if (val.status === 'insufficient_sourcing') {
+                cardClass = `${styles.indicatorCard} ${styles.indicatorCardSourcing}`;
+                statusLabel = 'No verified data';
+              } else if (isNA) {
+                cardClass = `${styles.indicatorCard} ${styles.indicatorCardNA}`;
+                statusLabel = 'Not Applicable';
+              }
+
+              // Highlight if hidden in layout editor
+              if (isEditingLayout && !ind.visible) {
+                cardClass = `${cardClass} ${styles.indicatorCardHidden}`;
+              }
+
+              return (
+                <div
+                  key={ind.id}
+                  className={cardClass}
+                  draggable={isEditingLayout}
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleDrop(e, idx)}
+                >
+                  <div className={styles.indicatorTop}>
+                    <div className={styles.indicatorLabel} title={ind.description}>
+                      {ind.label}
+                      <span className={styles.infoIcon} title={ind.description}>ⓘ</span>
+                    </div>
+
+                    {isEditingLayout && (
+                      <div className={styles.layoutControls}>
+                        <input
+                          type="checkbox"
+                          checked={ind.visible}
+                          title="Toggle Visibility"
+                          onChange={() => toggleVisibility(ind.id)}
+                        />
+                        <button
+                          className={styles.shiftBtn}
+                          disabled={idx === 0}
+                          title="Move Up"
+                          onClick={() => shiftOrder(idx, -1)}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          className={styles.shiftBtn}
+                          disabled={idx === sortedIndicators.length - 1}
+                          title="Move Down"
+                          onClick={() => shiftOrder(idx, 1)}
+                        >
+                          ▼
+                        </button>
+                        <span className={styles.dragHandle} title="Drag to reorder">☰</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.indicatorValue}>
+                    {val.status === 'found' ? (
+                      <span className={styles.valueText}>{val.value}</span>
+                    ) : (
+                      <span className={styles.mutedText}>{statusLabel}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* Stance Summary */}

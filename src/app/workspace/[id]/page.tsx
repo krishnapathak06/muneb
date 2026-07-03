@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import IntakeStep from '@/components/IntakeStep';
 import SubIssueStep from '@/components/SubIssueStep';
+import IndicatorStep from '@/components/IndicatorStep';
 import ResearchProgress from '@/components/ResearchProgress';
 import Dashboard from '@/components/Dashboard';
 import styles from './workspace.module.css';
@@ -15,14 +16,17 @@ interface WorkspaceMeta {
   agenda: string;
   createdAt: string;
   status: string;
+  countries?: string[];
+  subIssues?: { id: string; title: string; description: string }[];
 }
 
-const STEPS = ['Intake', 'Sub-issues', 'Research', 'Dashboard'];
+const STEPS = ['Intake', 'Sub-issues', 'Indicators', 'Research', 'Dashboard'];
 const STEP_FOR_STATUS: Record<string, number> = {
   intake: 0,
   'sub-issues': 1,
-  researching: 2,
-  done: 3,
+  indicators: 2,
+  researching: 3,
+  done: 4,
 };
 
 export default function WorkspacePage() {
@@ -114,18 +118,28 @@ export default function WorkspacePage() {
             workspaceId={id}
             committee={ws.committee || intakeData?.committee || ''}
             mainAgenda={ws.agenda || intakeData?.agenda || ''}
-            countries={intakeData?.countries ?? []}
+            countries={ws.countries || intakeData?.countries || []}
             bgText={bgText}
             onComplete={() => refreshWorkspace()}
           />
         )}
         {currentStep === 2 && (
+          <IndicatorStep
+            workspaceId={id}
+            committee={ws.committee || intakeData?.committee || ''}
+            mainAgenda={ws.agenda || intakeData?.agenda || ''}
+            countries={ws.countries || intakeData?.countries || []}
+            subIssues={ws.subIssues || []}
+            onComplete={() => refreshWorkspace()}
+          />
+        )}
+        {currentStep === 3 && (
           <ResearchProgress
             workspaceId={id}
             onComplete={() => refreshWorkspace()}
           />
         )}
-        {currentStep === 3 && (
+        {currentStep === 4 && (
           <Dashboard workspaceId={id} />
         )}
       </div>

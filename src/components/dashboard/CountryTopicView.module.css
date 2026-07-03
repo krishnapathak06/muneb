@@ -143,3 +143,135 @@
   overflow-y: auto;
   text-align: left;
 }
+
+/* Indicators Styling */
+.indicatorsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.indicatorControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.checkboxLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.indicatorsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--space-3);
+}
+
+.indicatorCard {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  position: relative;
+  transition: all 0.2s ease;
+}
+.indicatorCard[draggable="true"] {
+  cursor: grab;
+  border-style: dashed;
+}
+.indicatorCard[draggable="true"]:active {
+  cursor: grabbing;
+}
+.indicatorCardSourcing {
+  border-style: dashed;
+  border-color: var(--border-subtle);
+  background: rgba(100, 116, 139, 0.02);
+}
+.indicatorCardNA {
+  opacity: 0.6;
+  background: rgba(100, 116, 139, 0.05);
+}
+.indicatorCardHidden {
+  opacity: 0.35;
+  border-color: var(--accent-danger);
+}
+
+.indicatorTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+}
+.indicatorLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.infoIcon {
+  cursor: help;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.layoutControls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+}
+.shiftBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 9px;
+  padding: 0 2px;
+  color: var(--text-muted);
+}
+.shiftBtn:hover:not(:disabled) {
+  color: var(--accent-primary);
+}
+.shiftBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.dragHandle {
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: grab;
+  padding-left: 2px;
+}
+
+.indicatorValue {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+.valueText {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.mutedText {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+

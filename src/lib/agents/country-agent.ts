@@ -39,6 +39,13 @@ function normalizeUrl(urlStr: string): string {
 
 export type ConfidenceLevel = 'Well-sourced' | 'Sparse' | 'Insufficient';
 
+export interface IndicatorValue {
+  indicatorId: string;
+  value: string | null;
+  status: 'found' | 'insufficient_sourcing' | 'not_applicable';
+  verified: boolean;
+}
+
 export interface TopicResearch {
   stance_summary: string;
   stats: string[];
@@ -49,6 +56,7 @@ export interface TopicResearch {
   recent_shifts: string;
   confidence: ConfidenceLevel;
   sources: Source[];
+  indicator_values: IndicatorValue[];
 }
 
 export interface CountryResearchResult {
@@ -100,6 +108,7 @@ async function researchTopic(
   mainAgenda: string,
   topicTitle: string,
   topicDescription: string,
+  indicators: { id: string; label: string; description: string }[],
   previousContext?: string
 ): Promise<TopicResearch> {
   const systemPrompt = buildSystemPrompt(countryName, committee, mainAgenda);
@@ -115,9 +124,22 @@ async function researchTopic(
       citations.map((c, i) => `[Source ${i+1}]: ${c.title}\nURL: ${c.url}\nExcerpt: ${c.content}`).join('\n\n')
     : 'No search results available. Rely on standard verified knowledge.';
 
+  const indicatorsSection = indicators.length > 0
+    ? `CRITICAL INDICATORS TO EXTRACT:\n` +
+      `For this topic, you MUST extract values for each of the following indicators. In your JSON response, the "indicator_values" array must have EXACTLY one entry for each indicator listed here:\n` +
+      indicators.map((ind) => `- [ID: ${ind.id}] ${ind.label}: ${ind.description}`).join('\n') +
+      `\n\nFor each entry in "indicator_values":\n` +
+      `- "indicatorId" must match the ID from the list above.\n` +
+      `- "status" must be exactly "found", "insufficient_sourcing", or "not_applicable" (e.g. landlocked country for maritime metric).\n` +
+      `- "value" should be the specific answer/value (e.g. "$12B", "Ratified in 2021", "N/A"), or null if status is "insufficient_sourcing" or "not_applicable".\n` +
+      `- "source_index" is the 0-indexed number of the source in the "sources" list below that supports this indicator value.`
+    : '';
+
   const userPrompt = `Research ${countryName}'s stance on: "${topicTitle}" — ${topicDescription}${contextNote}
 
 ${searchGroundingContext}
+
+${indicatorsSection}
 
 Return a JSON object with EXACTLY this structure:
 {
@@ -136,6 +158,14 @@ Return a JSON object with EXACTLY this structure:
       "extracted_text": "key quote or excerpt supporting the claim",
       "credibility_tier": 1,
       "retrieved_at": "${new Date().toISOString()}"
+    }
+  ],
+  "indicator_values": [
+    {
+      "indicatorId": "indicator-uuid-from-list",
+      "value": "data point or answer, or null if not found",
+      "status": "found",
+      "source_index": 0
     }
   ]
 }
@@ -204,6 +234,34 @@ If you cannot find sourced information for a section, write "insufficient sourci
       }
     }
 
+    // Verify indicator values against matched verified sources
+    const indicatorValues: IndicatorValue[] = (parsed.indicator_values ?? []).map((v: any) => {
+      const isFound = v.status === 'found';
+      const sourceIndex = typeof v.source_index === 'number' ? v.source_index : -1;
+      const matchedSource = sourceIndex >= 0 && sourceIndex < sources.length ? sources[sourceIndex] : null;
+      
+      const isVerified = isFound && !!matchedSource && matchedSource.verified;
+      
+      return {
+        indicatorId: v.indicatorId || '',
+        value: (isFound && !isVerified) ? null : (v.value || null),
+        status: (isFound && !isVerified) ? 'insufficient_sourcing' : (v.status || 'insufficient_sourcing') as 'found' | 'insufficient_sourcing' | 'not_applicable',
+        verified: isVerified,
+      };
+    });
+
+    // Make sure we have entries for all expected indicators
+    for (const ind of indicators) {
+      if (!indicatorValues.some((v) => v.indicatorId === ind.id)) {
+        indicatorValues.push({
+          indicatorId: ind.id,
+          value: null,
+          status: 'insufficient_sourcing',
+          verified: false,
+        });
+      }
+    }
+
     return {
       stance_summary: parsed.stance_summary ?? 'insufficient sourcing — verify before use',
       stats: parsed.stats ?? [],
@@ -214,8 +272,16 @@ If you cannot find sourced information for a section, write "insufficient sourci
       recent_shifts: parsed.recent_shifts ?? '',
       confidence: assessConfidence(sources),
       sources,
+      indicator_values: indicatorValues,
     };
   } catch {
+    const defaultIndicatorValues = indicators.map((ind) => ({
+      indicatorId: ind.id,
+      value: null,
+      status: 'insufficient_sourcing' as const,
+      verified: false,
+    }));
+
     return {
       stance_summary: 'insufficient sourcing — verify before use',
       stats: [],
@@ -223,9 +289,10 @@ If you cannot find sourced information for a section, write "insufficient sourci
       questions: [],
       allies: [],
       adversaries: [],
-      recent_shifts: '',
+      recent_shifts: 'insufficient sourcing — verify before use',
       confidence: 'Insufficient',
       sources: [],
+      indicator_values: defaultIndicatorValues,
     };
   }
 }
@@ -302,12 +369,24 @@ export async function runCountryAgent(
     let totalVerified = 0;
     onProgress?.(`Researching main agenda: ${agendaData.main_agenda}`, totalVerified);
 
+    // Load indicators config
+    const indicatorsPath = path.join(process.cwd(), 'workspaces', workspaceId, 'indicators.json');
+    let indicatorsMap: Record<string, { id: string; label: string; description: string }[]> = {};
+    if (fs.existsSync(indicatorsPath)) {
+      try {
+        indicatorsMap = JSON.parse(fs.readFileSync(indicatorsPath, 'utf-8'));
+      } catch (e) {
+        console.error('[CountryAgent] Failed to read indicators.json:', e);
+      }
+    }
+
     const mainAgendaResearch = await researchTopic(
       countryName,
       committee,
       agendaData.main_agenda,
       agendaData.main_agenda,
-      `The primary agenda of the ${committee}`
+      `The primary agenda of the ${committee}`,
+      indicatorsMap['main'] || []
     );
 
     // Count verified in main agenda
@@ -325,6 +404,7 @@ export async function runCountryAgent(
         agendaData.main_agenda,
         subIssue.title,
         subIssue.description,
+        indicatorsMap[`subissue_${subIssue.id}`] || [],
         mainContext
       );
       subIssueResearch[subIssue.id] = subResearch;
@@ -391,6 +471,7 @@ export async function runCountryAgent(
         stance_summary: 'Research failed',
         stats: [], controversies: [], questions: [], allies: [], adversaries: [],
         recent_shifts: '', confidence: 'Insufficient', sources: [],
+        indicator_values: [],
       },
       subIssues: {},
       geopolitical: {

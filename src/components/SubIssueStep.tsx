@@ -80,20 +80,31 @@ export default function SubIssueStep({
     setSubmitting(true);
     setError('');
     try {
-      // Start research
-      const res = await fetch('/api/research/start', {
+      // 1. Generate indicators
+      const resGen = await fetch('/api/indicators/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workspaceId,
-          committee,
           mainAgenda,
           subIssues,
-          countries,
         }),
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      const dataGen = await resGen.json();
+      if (dataGen.error) throw new Error(dataGen.error);
+
+      // 2. Advance status to 'indicators' and save sub-issues
+      const resAdvance = await fetch(`/api/workspaces/${workspaceId}/advance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'indicators',
+          subIssues,
+        }),
+      });
+      const dataAdvance = await resAdvance.json();
+      if (dataAdvance.error) throw new Error(dataAdvance.error);
+
       onComplete();
     } catch (err) {
       setError((err as Error).message);
