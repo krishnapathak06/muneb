@@ -12,6 +12,7 @@ interface CountryProgress {
   error?: string;
   startedAt?: string;
   completedAt?: string;
+  embeddedCount?: number;
 }
 
 interface Props {
@@ -56,6 +57,7 @@ export default function ResearchProgress({ workspaceId, onComplete }: Props) {
   const researching = entries.filter(([, v]) => v.status === 'researching').length;
   const total = entries.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const totalEmbedded = entries.reduce((acc, [, v]) => acc + (v.embeddedCount ?? 0), 0);
 
   return (
     <div className={styles.container}>
@@ -82,6 +84,14 @@ export default function ResearchProgress({ workspaceId, onComplete }: Props) {
           />
         </div>
         <div className={styles.progressPct}>{pct}% complete</div>
+        
+        <div className={styles.embeddedBanner}>
+          <span style={{ fontSize: 24 }}>📚</span>
+          <div>
+            <strong>{totalEmbedded}</strong> resources successfully fetched and embedded into the system.
+          </div>
+        </div>
+
         {wsStatus === 'done' && (
           <div className={styles.doneMsg}>✓ All research complete — loading dashboard…</div>
         )}

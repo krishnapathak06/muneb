@@ -271,10 +271,11 @@ export async function runCountryAgent(
   countryId: string,
   committee: string,
   agendaData: AgendaData,
-  onProgress?: (stage: string) => void
+  onProgress?: (stage: string, embeddedCount?: number) => void
 ): Promise<CountryResearchResult> {
   try {
-    onProgress?.(`Researching main agenda: ${agendaData.main_agenda}`);
+    let totalVerified = 0;
+    onProgress?.(`Researching main agenda: ${agendaData.main_agenda}`, totalVerified);
 
     const mainAgendaResearch = await researchTopic(
       countryName,
@@ -284,12 +285,16 @@ export async function runCountryAgent(
       `The primary agenda of the ${committee}`
     );
 
+    // Count verified in main agenda
+    totalVerified += (mainAgendaResearch.sources ?? []).filter(s => s.verified).length;
+    onProgress?.(`Main agenda research complete`, totalVerified);
+
     const mainContext = mainAgendaResearch.stance_summary;
     const subIssueResearch: Record<string, TopicResearch> = {};
 
     for (const subIssue of agendaData.sub_issues) {
-      onProgress?.(`Researching sub-issue: ${subIssue.title}`);
-      subIssueResearch[subIssue.id] = await researchTopic(
+      onProgress?.(`Researching sub-issue: ${subIssue.title}`, totalVerified);
+      const subResearch = await researchTopic(
         countryName,
         committee,
         agendaData.main_agenda,
@@ -297,9 +302,12 @@ export async function runCountryAgent(
         subIssue.description,
         mainContext
       );
+      subIssueResearch[subIssue.id] = subResearch;
+      totalVerified += (subResearch.sources ?? []).filter(s => s.verified).length;
+      onProgress?.(`Sub-issue: ${subIssue.title} complete`, totalVerified);
     }
 
-    onProgress?.('Researching geopolitical position');
+    onProgress?.('Researching geopolitical position', totalVerified);
     const geopolitical = await researchGeopolitical(countryName, committee, agendaData.main_agenda);
 
     const result: CountryResearchResult = {

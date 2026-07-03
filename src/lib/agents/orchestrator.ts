@@ -11,6 +11,7 @@ export interface OrchestratorProgress {
     error?: string;
     startedAt?: string;
     completedAt?: string;
+    embeddedCount?: number;
   };
 }
 
@@ -49,15 +50,27 @@ export async function orchestrateResearch(
           country.id,
           committee,
           agendaData,
-          (stage) => {
+          (stage, embeddedCount) => {
             progress[country.id].stage = stage;
+            if (embeddedCount !== undefined) {
+              progress[country.id].embeddedCount = embeddedCount;
+            }
             writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
           }
         );
 
         progress[country.id].status = result.status;
         progress[country.id].completedAt = new Date().toISOString();
-        if (result.error) progress[country.id].error = result.error;
+        if (result.error) {
+          progress[country.id].error = result.error;
+        } else {
+          // Double check final count of verified sources
+          const allSources = [
+            ...(result.mainAgenda?.sources ?? []),
+            ...Object.values(result.subIssues ?? {}).flatMap((s) => s.sources ?? []),
+          ];
+          progress[country.id].embeddedCount = allSources.filter(s => s.verified).length;
+        }
         writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
       })
     );
