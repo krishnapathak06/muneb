@@ -76,5 +76,60 @@ export async function orchestrateResearch(
     );
   }
 
+  // Rerun failed countries up to 2 retry passes
+  const maxPasses = 3;
+  for (let pass = 1; pass < maxPasses; pass++) {
+    const failedCountries = countries.filter(c => progress[c.id].status === 'failed');
+    if (failedCountries.length === 0) {
+      break;
+    }
+
+    console.log(`[Orchestrator] Retry Pass ${pass}: retrying ${failedCountries.length} failed countries...`);
+
+    const retryChunks: typeof countries[] = [];
+    for (let i = 0; i < failedCountries.length; i += MAX_CONCURRENCY) {
+      retryChunks.push(failedCountries.slice(i, i + MAX_CONCURRENCY));
+    }
+
+    for (const chunk of retryChunks) {
+      await Promise.all(
+        chunk.map(async (country) => {
+          progress[country.id].status = 'researching';
+          progress[country.id].stage = `Retrying (Pass ${pass + 1})...`;
+          progress[country.id].error = undefined;
+          writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
+
+          const result = await runCountryAgent(
+            workspaceId,
+            country.name,
+            country.id,
+            committee,
+            agendaData,
+            (stage, embeddedCount) => {
+              progress[country.id].stage = `Retry: ${stage}`;
+              if (embeddedCount !== undefined) {
+                progress[country.id].embeddedCount = embeddedCount;
+              }
+              writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
+            }
+          );
+
+          progress[country.id].status = result.status;
+          progress[country.id].completedAt = new Date().toISOString();
+          if (result.error) {
+            progress[country.id].error = result.error;
+          } else {
+            const allSources = [
+              ...(result.mainAgenda?.sources ?? []),
+              ...Object.values(result.subIssues ?? {}).flatMap((s) => s.sources ?? []),
+            ];
+            progress[country.id].embeddedCount = allSources.filter(s => s.verified).length;
+          }
+          writeWorkspaceFile(workspaceId, 'research_progress.json', progress);
+        })
+      );
+    }
+  }
+
   return progress;
 }
