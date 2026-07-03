@@ -16,7 +16,7 @@ export interface OrchestratorProgress {
   };
 }
 
-const MAX_CONCURRENCY = 5; // conservative for free-tier rate limits
+const MAX_CONCURRENCY = 15; // tripled concurrency for multi-request local Ollama setup
 
 export async function orchestrateResearch(
   workspaceId: string,
