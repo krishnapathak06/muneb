@@ -9,7 +9,7 @@ const client = new OpenAI({
   },
 });
 
-export const MODEL = 'google/gemma-3-27b-it:online';
+export const MODEL = 'google/gemma-4-31b-it:free';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
