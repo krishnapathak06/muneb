@@ -21,6 +21,7 @@ export default function Dashboard({ workspaceId }: Props) {
   const [countrySearch, setCountrySearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'research' | 'live'>('research');
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     loadWorkspaceData();
@@ -95,17 +96,18 @@ export default function Dashboard({ workspaceId }: Props) {
         <LiveTracker workspaceId={workspaceId} countries={countries} />
       ) : (
         <>
-          {/* Top Controls */}
-          <div className={styles.controls}>
-            <div className={styles.controlGroup}>
-              <label className="label" style={{ margin: 0, marginRight: 8 }}>Country</label>
+          {/* Combined Top Bar */}
+          <div className={styles.topBar}>
+            {/* Country Selector group */}
+            <div className={styles.countryGroup}>
+              <span style={{ fontSize: 16 }}>🌍</span>
               <div className={styles.countrySelector}>
                 <input
                   className="input"
                   placeholder="Search countries…"
                   value={countrySearch}
                   onChange={(e) => setCountrySearch(e.target.value)}
-                  style={{ width: 200 }}
+                  style={{ width: 170, height: 32, fontSize: 13 }}
                 />
                 {countrySearch && (
                   <div className={styles.dropdown}>
@@ -132,22 +134,21 @@ export default function Dashboard({ workspaceId }: Props) {
               )}
             </div>
 
-            <div className={styles.controlGroup}>
-              <label className="label" style={{ margin: 0, marginRight: 8 }}>Topic</label>
-              <div className={styles.tabsWrapper}>
-                <div className="tabs" style={{ flexWrap: 'wrap' }}>
-                  {topics.map((t) => (
-                    <button
-                      key={t.id}
-                      id={`tab-${t.id}`}
-                      className={`tab ${selectedTopic === t.id ? 'active' : ''}`}
-                      onClick={() => setSelectedTopic(t.id)}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            {/* Vertical Divider line */}
+            <div className={styles.divider} />
+
+            {/* Topic Selector Pills group */}
+            <div className={styles.topicGroup}>
+              {topics.map((t) => (
+                <button
+                  key={t.id}
+                  id={`tab-${t.id}`}
+                  className={`${styles.topicPill} ${selectedTopic === t.id ? styles.topicPillActive : ''}`}
+                  onClick={() => setSelectedTopic(t.id)}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -179,10 +180,23 @@ export default function Dashboard({ workspaceId }: Props) {
               )}
             </div>
 
-            {/* Q&A Feed */}
-            <div className={styles.qnaPanel}>
-              <QnaFeed workspaceId={workspaceId} />
-            </div>
+            {/* Floating Q&A Dialogue popup */}
+            {isChatOpen && (
+              <div className={styles.chatPopup}>
+                <div className={styles.chatHeader}>
+                  <span>💬 Q&A Dialogue</span>
+                  <button className={styles.chatCloseBtn} onClick={() => setIsChatOpen(false)}>×</button>
+                </div>
+                <div className={styles.chatPopupBody}>
+                  <QnaFeed workspaceId={workspaceId} />
+                </div>
+              </div>
+            )}
+
+            {/* Floating pop-up launcher button */}
+            <button className={styles.chatToggleBtn} onClick={() => setIsChatOpen(!isChatOpen)}>
+              {isChatOpen ? '❌' : '💬'}
+            </button>
           </div>
         </>
       )}
