@@ -707,7 +707,10 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
 
   const currentActivity =
     sessionData.activities.find((a) => a.status !== 'completed') ?? null;
-  const canAddActivity = !currentActivity && isMeetingActive;
+  // A session that has been started is enough to add activities.
+  // The mic doesn't need to be actively recording — timestamps will use recordingSeconds
+  // which is 0 when the mic is off, but activities can still be logged.
+  const canAddActivity = !currentActivity && !!sessionData.sessionStart;
   const getName = (id: string) => countries.find((c) => c.id === id)?.name ?? id;
 
   const speakerDisplayTime =
@@ -943,10 +946,11 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
           <div className={styles.activityHeaderRight}>
             <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
             <button
-              className={`btn btn-ghost btn-sm ${styles.closeActivityBtn}`}
+              className={`btn btn-secondary btn-sm ${styles.closeActivityBtn}`}
               onClick={handleCloseActivity}
+              title="Close this activity and return to the timeline"
             >
-              Close Activity
+              ✓ Close Activity
             </button>
           </div>
         </div>
