@@ -60,19 +60,26 @@ async function searchDDG(query: string): Promise<SearchResult[]> {
     }
     const html = await res.text();
     const results: SearchResult[] = [];
-    const resultBlocks = html.split('<div class="result__body">').slice(1);
+    const resultBlocks = html.split(/<div[^>]*class=['"][^'"]*result__body[^'"]*['"][^>]*>/i).slice(1);
     
     for (const block of resultBlocks) {
-      const titleMatch = block.match(/<a class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
-      const snippetMatch = block.match(/<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+      const titleMatch = block.match(/<a[^>]*class=['"][^'"]*result__a[^'"]*['"][^>]*href=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/a>/i);
+      const snippetMatch = block.match(/<a[^>]*class=['"][^'"]*result__snippet[^'"]*['"][^>]*>([\s\S]*?)<\/a>/i);
       
       if (titleMatch) {
-        const rawUrl = titleMatch[1];
+        let rawUrl = titleMatch[1];
         let cleanedUrl = rawUrl;
-        if (rawUrl.includes('uddg=')) {
-          const match = rawUrl.match(/uddg=([^&]+)/);
+        
+        if (cleanedUrl.startsWith('//')) {
+          cleanedUrl = 'https:' + cleanedUrl;
+        } else if (cleanedUrl.startsWith('/')) {
+          cleanedUrl = 'https://duckduckgo.com' + cleanedUrl;
+        }
+
+        if (cleanedUrl.includes('uddg=')) {
+          const match = cleanedUrl.match(/uddg=([^&]+)/);
           if (match) {
-            cleanedUrl = decodeURIComponent(match[1]);
+            cleanedUrl = decodeURIComponent(match[1].replace(/&amp;/g, '&'));
           }
         }
         
