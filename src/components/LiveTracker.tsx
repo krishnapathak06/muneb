@@ -102,11 +102,33 @@ export interface UnmodCocActivity extends BaseActivity {
   outcome: 'passed' | 'failed' | null;
 }
 
+export interface VoteActivity extends BaseActivity {
+  type: 'vote';
+  drTitle: string;
+  authors: string[];      // country IDs
+  signatories: string[];  // country IDs
+  votes: { countryId: string; vote: 'for' | 'against' | 'abstain' }[];
+  outcome: 'passed' | 'failed' | null;
+}
+
+export interface CrisisActivity extends BaseActivity {
+  type: 'crisis';
+  content: string;
+}
+
+export interface PresidentialAddressActivity extends BaseActivity {
+  type: 'presidential_address';
+  content: string;
+}
+
 export type ActivityRecord =
   | AttendanceActivity
   | GSLActivity
   | ModCocActivity
-  | UnmodCocActivity;
+  | UnmodCocActivity
+  | VoteActivity
+  | CrisisActivity
+  | PresidentialAddressActivity;
 
 export interface SessionData {
   sessionStart: string | null;
@@ -183,6 +205,16 @@ const IconClose = () => (
 const IconAudio = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
 );
+const IconVote = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+);
+const IconCrisis = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+);
+const IconPresident = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+);
+
 
 // ─── Country Avatar (matches SaaS dashboard avatar rows) ─────────────────────
 const AVATAR_GRADIENTS = [
@@ -318,6 +350,141 @@ function DelegateSelect({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function DelegateMultiSelect({
+  label,
+  countries,
+  selectedIds,
+  onChange,
+}: {
+  label: string;
+  countries: Country[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const filtered = search
+    ? countries.filter(
+        (c) =>
+          c.name.toLowerCase().includes(search.toLowerCase()) &&
+          !selectedIds.includes(c.id)
+      )
+    : countries.filter((c) => !selectedIds.includes(c.id));
+
+  // Reset activeIndex when filter changes
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [search]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const visibleOptions = filtered.slice(0, 8);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((prev) => Math.min(visibleOptions.length - 1, prev + 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((prev) => Math.max(0, prev - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (visibleOptions[activeIndex]) {
+        onChange([...selectedIds, visibleOptions[activeIndex].id]);
+        setSearch('');
+      }
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <div className={styles.delegateSelect} style={{ position: 'relative' }}>
+      <label className="label">{label}</label>
+      
+      {/* Selected tags */}
+      {selectedIds.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+          {selectedIds.map(id => {
+            const country = countries.find(c => c.id === id);
+            if (!country) return null;
+            return (
+              <div
+                key={id}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '3px 8px',
+                  background: 'var(--saas-bg-elevated)',
+                  border: '1px solid var(--saas-border-default)',
+                  borderRadius: 'var(--saas-radius-md)',
+                  fontSize: 12,
+                }}
+              >
+                <CountryAvatar name={country.name} size={16} />
+                <span>{country.name}</span>
+                <button
+                  type="button"
+                  onClick={() => onChange(selectedIds.filter(x => x !== id))}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--saas-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0 0 0 4px',
+                  }}
+                >
+                  <IconClose />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className={styles.delegateSearchBox}>
+        <input
+          className="input"
+          placeholder="Search and select delegates…"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          onKeyDown={handleKeyDown}
+          onBlur={() => {
+            // Delay to allow option clicks to register
+            setTimeout(() => setIsOpen(false), 200);
+          }}
+        />
+        {isOpen && filtered.length > 0 && (
+          <div className={styles.delegateDropdown} style={{ position: 'absolute', width: '100%', zIndex: 10 }}>
+            {filtered.slice(0, 8).map((c, idx) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`${styles.delegateOption} ${
+                  idx === activeIndex ? styles.delegateOptionActive : ''
+                }`}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // Prevents input blur before selection
+                  onChange([...selectedIds, c.id]);
+                  setSearch('');
+                }}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -676,6 +843,143 @@ function CompletedActivityCard({
           )}
           <span style={{ fontSize: 13, color: 'var(--saas-text-muted)', background: 'var(--saas-bg-elevated)', padding: '2px 10px', borderRadius: 20, border: '1px solid var(--saas-border-default)' }}>{label}</span>
         </div>
+      </div>
+    );
+  }
+
+  if (activity.type === 'vote') {
+    const v = activity as VoteActivity;
+    const forCount = v.votes?.filter((vt) => vt.vote === 'for').length ?? 0;
+    const againstCount = v.votes?.filter((vt) => vt.vote === 'against').length ?? 0;
+    const abstainCount = v.votes?.filter((vt) => vt.vote === 'abstain').length ?? 0;
+
+    return (
+      <div className={`${styles.activityCard} ${styles.activityCardVote} ${styles.activityCardCompleted}`} id={`activity-card-${activity.id}`}>
+        <div className={styles.activityCardHeader} {...headerClickProps}>
+          <span className={`${styles.activityBadge} ${styles.badgeVote}`}>
+            <IconVote /> Formal Vote
+          </span>
+          {v.outcome && (
+            <span className={`${styles.outcomeBadge} ${v.outcome === 'passed' ? styles.outcomePassed : styles.outcomeFailed}`}>
+              {v.outcome === 'passed' ? 'Passed' : 'Failed'}
+            </span>
+          )}
+          <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
+          {expandIcon}
+        </div>
+        <p style={{ fontSize: 13.5, color: 'var(--saas-text-primary)', fontWeight: 600, margin: '6px 0' }}>
+          {v.drTitle || 'Substantive Vote'}
+        </p>
+
+        {/* Display Tally Overview badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--confidence-good)' }}>{forCount} For</span>
+          <span style={{ color: 'var(--saas-border-strong)' }}>·</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--saas-accent-danger)' }}>{againstCount} Against</span>
+          <span style={{ color: 'var(--saas-border-strong)' }}>·</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--saas-text-muted)' }}>{abstainCount} Abstain</span>
+        </div>
+
+        {isExpanded && (
+          <div className={styles.expandedContent}>
+            <div className={styles.expandedDivider} />
+            
+            {/* Authors */}
+            {v.authors && v.authors.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <h6 style={{ fontSize: 11, fontWeight: 700, color: 'var(--saas-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Authors / Sponsors</h6>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {v.authors.map(id => (
+                    <div key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--saas-bg-elevated)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--saas-border-default)', fontSize: 12 }}>
+                      <CountryAvatar name={getName(id)} size={16} />
+                      <span>{getName(id)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Signatories */}
+            {v.signatories && v.signatories.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <h6 style={{ fontSize: 11, fontWeight: 700, color: 'var(--saas-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Signatories</h6>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {v.signatories.map(id => (
+                    <div key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--saas-bg-elevated)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--saas-border-default)', fontSize: 12 }}>
+                      <CountryAvatar name={getName(id)} size={16} />
+                      <span>{getName(id)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Detailed votes list */}
+            <div>
+              <h6 style={{ fontSize: 11, fontWeight: 700, color: 'var(--saas-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Individual Votes</h6>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 6 }}>
+                {(v.votes ?? []).map(vt => (
+                  <div key={vt.countryId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', background: 'var(--saas-bg-elevated)', border: '1px solid var(--saas-border-default)', borderRadius: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                      <CountryAvatar name={getName(vt.countryId)} size={16} />
+                      <span style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getName(vt.countryId)}</span>
+                    </div>
+                    <span style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      color: vt.vote === 'for' ? 'var(--confidence-good)' : vt.vote === 'against' ? 'var(--saas-accent-danger)' : 'var(--saas-text-muted)'
+                    }}>
+                      {vt.vote}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (activity.type === 'crisis') {
+    const c = activity as CrisisActivity;
+    return (
+      <div
+        className={`${styles.activityCard} ${styles.activityCardCrisis} ${styles.activityCardCompleted}`}
+        id={`activity-card-${activity.id}`}
+        style={{ borderLeft: '4px solid var(--saas-accent-warn)' }}
+      >
+        <div className={styles.activityCardHeader}>
+          <span className={`${styles.activityBadge} ${styles.badgeCrisis}`}>
+            <IconCrisis /> Crisis Log
+          </span>
+          <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--saas-text-primary)', fontStyle: 'italic', margin: '6px 0', whiteSpace: 'pre-wrap' }}>
+          {c.content}
+        </p>
+      </div>
+    );
+  }
+
+  if (activity.type === 'presidential_address') {
+    const pa = activity as PresidentialAddressActivity;
+    return (
+      <div
+        className={`${styles.activityCard} ${styles.activityCardPresident} ${styles.activityCardCompleted}`}
+        id={`activity-card-${activity.id}`}
+        style={{ borderLeft: '4px solid var(--saas-accent-primary)' }}
+      >
+        <div className={styles.activityCardHeader}>
+          <span className={`${styles.activityBadge} ${styles.badgePresident}`}>
+            <IconPresident /> Presidential Address
+          </span>
+          <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--saas-text-primary)', margin: '6px 0', whiteSpace: 'pre-wrap' }}>
+          {pa.content}
+        </p>
       </div>
     );
   }
@@ -1091,10 +1395,8 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
     speakerTimerMode === 'stopwatch'
       ? formatTime(speakerElapsed)
       : formatTime(Math.max(0, speakerTimeLimit - speakerElapsed));
-  const speakerWarning =
-    speakerTimerMode === 'countdown' && speakerElapsed >= speakerTimeLimit - 15;
-  const speakerExpired =
-    speakerTimerMode === 'countdown' && speakerElapsed >= speakerTimeLimit;
+  const speakerExpired = speakerElapsed >= speakerTimeLimit;
+  const speakerWarning = !speakerExpired && (speakerTimeLimit - speakerElapsed <= 15);
 
   // ── Activity management ────────────────────────────────────────────────────
 
@@ -1150,7 +1452,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         outcome: null,
         speakers: [],
       };
-    } else {
+    } else if (type === 'unmod_coc') {
       newActivity = {
         ...base,
         type: 'unmod_coc',
@@ -1158,6 +1460,31 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         raisedBy: '',
         durationSeconds: 600,
         outcome: null,
+      };
+    } else if (type === 'vote') {
+      newActivity = {
+        ...base,
+        type: 'vote',
+        status: 'setup',
+        drTitle: '',
+        authors: [],
+        signatories: [],
+        votes: [],
+        outcome: null,
+      };
+    } else if (type === 'crisis') {
+      newActivity = {
+        ...base,
+        type: 'crisis',
+        status: 'active',
+        content: '',
+      };
+    } else {
+      newActivity = {
+        ...base,
+        type: 'presidential_address',
+        status: 'active',
+        content: '',
       };
     }
 
@@ -1474,7 +1801,10 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                       <span className={`${styles.pointTypeBadge} ${pt.type === 'ppp' ? styles.badgePrivilege : pt.type === 'ppi' ? styles.badgeInquiry : styles.badgeOrder}`}>
                         {POINT_LABELS[pt.type] || pt.type}
                       </span>
-                      <span className={styles.pointRaisedBy}>{getName(pt.raisedBy)}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <CountryAvatar name={getName(pt.raisedBy)} size={18} />
+                        <span className={styles.pointRaisedBy}>{getName(pt.raisedBy)}</span>
+                      </div>
                       <p className={styles.pointContentText}>"{pt.content}"</p>
                       {pt.answer && <p className={styles.pointAnswerText}>Answer: {pt.answer}</p>}
                     </div>
@@ -1569,7 +1899,8 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
               const roll = att.rolls.find((r) => r.countryId === country.id);
               const status = roll?.status ?? 'absent';
               return (
-                <div key={country.id} className={styles.attendanceRow}>
+                <div key={country.id} className={styles.attendanceRow} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <CountryAvatar name={country.name} size={20} />
                   <span className={styles.attendanceCountryName}>{country.name}</span>
                   <div className={styles.attendanceOptions}>
                     {(
@@ -1904,6 +2235,294 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
       );
     }
 
+    if (activity.type === 'vote') {
+      const v = activity as VoteActivity;
+
+      if (v.status === 'setup') {
+        return (
+          <div key={activity.id} className={`${styles.activityCard} ${styles.activityCardVote}`}>
+            <div className={styles.activityCardHeader}>
+              <span className={`${styles.activityBadge} ${styles.badgeVote}`}>
+                <IconVote /> Substantive Vote Setup
+              </span>
+              <span className={styles.activityTimestamp}>
+                [+{formatTime(activity.startedAtOffset)}]
+              </span>
+            </div>
+            <div className={styles.setupForm}>
+              <div className={styles.formRow}>
+                <label className="label">Draft Resolution Title</label>
+                <input
+                  className="input"
+                  value={v.drTitle || ''}
+                  onChange={(e) => mutateCurrent({ drTitle: e.target.value } as any)}
+                  placeholder="e.g. Draft Resolution 1.1 (Sponsors: USA...)"
+                />
+              </div>
+
+              <DelegateMultiSelect
+                label="Authors (Sponsors)"
+                countries={countries}
+                selectedIds={v.authors || []}
+                onChange={(ids) => mutateCurrent({ authors: ids } as any)}
+              />
+
+              <DelegateMultiSelect
+                label="Signatories"
+                countries={countries}
+                selectedIds={v.signatories || []}
+                onChange={(ids) => mutateCurrent({ signatories: ids } as any)}
+              />
+
+              <div style={{ marginTop: 16 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ width: '100%', height: 40, fontWeight: 700 }}
+                  disabled={!v.drTitle}
+                  onClick={() => {
+                    const lastAttendance = [...sessionData.activities]
+                      .reverse()
+                      .find((a) => a.type === 'attendance') as AttendanceActivity | undefined;
+                    const countriesToVote = lastAttendance
+                      ? lastAttendance.rolls
+                          .filter((r) => r.status === 'present' || r.status === 'present_and_voting')
+                          .map((r) => r.countryId)
+                      : countries.map((c) => c.id);
+
+                    const initialVotes = countriesToVote.map((cid) => ({
+                      countryId: cid,
+                      vote: 'abstain' as const,
+                    }));
+
+                    mutateCurrent({
+                      status: 'active',
+                      votes: initialVotes,
+                    } as any);
+                  }}
+                >
+                  Start Voting Roll Call
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Active substantive vote state
+      const forCount = v.votes?.filter((v) => v.vote === 'for').length ?? 0;
+      const againstCount = v.votes?.filter((v) => v.vote === 'against').length ?? 0;
+      const abstainCount = v.votes?.filter((v) => v.vote === 'abstain').length ?? 0;
+      
+      const suggestedOutcome = forCount > againstCount ? 'passed' : 'failed';
+
+      const handleMarkVote = (cid: string, choice: 'for' | 'against' | 'abstain') => {
+        const updated = (v.votes ?? []).map((vt) =>
+          vt.countryId === cid ? { ...vt, vote: choice } : vt
+        );
+        mutateCurrent({ votes: updated } as any);
+      };
+
+      const handleConfirmOutcome = (outcomeVal: 'passed' | 'failed') => {
+        mutateCurrent({
+          outcome: outcomeVal,
+          status: 'completed',
+        } as any);
+      };
+
+      return (
+        <div key={activity.id} className={`${styles.activityCard} ${styles.activityCardVote}`}>
+          <div className={styles.activityCardHeader}>
+            <span className={`${styles.activityBadge} ${styles.badgeVote}`}>
+              <IconVote /> SUBSTANTIVE VOTE ON: {v.drTitle}
+            </span>
+            <span className={styles.activityTimestamp}>
+              [+{formatTime(activity.startedAtOffset)}]
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+            {/* Realtime tally dashboard */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: 8,
+              background: 'var(--saas-bg-elevated)',
+              border: '1.5px solid var(--saas-border-default)',
+              padding: 12,
+              borderRadius: 'var(--saas-radius-lg)',
+              textAlign: 'center'
+            }}>
+              <div>
+                <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--confidence-good)' }}>FOR</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--confidence-good)' }}>{forCount}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--saas-accent-danger)' }}>AGAINST</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--saas-accent-danger)' }}>{againstCount}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--saas-text-muted)' }}>ABSTAIN</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--saas-text-muted)' }}>{abstainCount}</div>
+              </div>
+            </div>
+
+            {/* Voting List */}
+            <div style={{ maxHeight: 250, overflowY: 'auto', border: '1px solid var(--saas-border-default)', borderRadius: 'var(--saas-radius-lg)' }}>
+              {(v.votes ?? []).map((vt) => {
+                const cName = getName(vt.countryId);
+                return (
+                  <div key={vt.countryId} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderBottom: '1px solid var(--saas-border-default)',
+                    background: 'var(--saas-bg-surface)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <CountryAvatar name={cName} size={20} />
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{cName}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button
+                        type="button"
+                        className={`${styles.attendanceBtn} ${vt.vote === 'for' ? styles.attendanceBtnActive : ''}`}
+                        onClick={() => handleMarkVote(vt.countryId, 'for')}
+                        style={{ height: 26, padding: '0 8px', fontSize: 10, background: vt.vote === 'for' ? 'var(--confidence-good)' : '' }}
+                      >
+                        For
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.attendanceBtn} ${vt.vote === 'against' ? styles.attendanceBtnActive : ''}`}
+                        onClick={() => handleMarkVote(vt.countryId, 'against')}
+                        style={{ height: 26, padding: '0 8px', fontSize: 10, background: vt.vote === 'against' ? 'var(--saas-accent-danger)' : '' }}
+                      >
+                        Against
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.attendanceBtn} ${vt.vote === 'abstain' ? styles.attendanceBtnActive : ''}`}
+                        onClick={() => handleMarkVote(vt.countryId, 'abstain')}
+                        style={{ height: 26, padding: '0 8px', fontSize: 10 }}
+                      >
+                        Abstain
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Suggested Outcome and Final Action buttons */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              borderTop: '1px solid var(--saas-border-default)',
+              paddingTop: 12,
+              marginTop: 4
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 650, color: 'var(--saas-text-muted)' }}>
+                Tally Recommendation: <span style={{ fontWeight: 800, textTransform: 'uppercase', color: suggestedOutcome === 'passed' ? 'var(--confidence-good)' : 'var(--saas-accent-danger)' }}>
+                  {suggestedOutcome === 'passed' ? 'Passed (For > Against)' : 'Failed (For ≤ Against)'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1, borderColor: 'var(--saas-accent-danger)', color: 'var(--saas-accent-danger)', background: 'transparent' }}
+                  onClick={() => handleConfirmOutcome('failed')}
+                >
+                  Confirm Failed
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                  onClick={() => handleConfirmOutcome('passed')}
+                >
+                  Confirm Passed
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (activity.type === 'crisis') {
+      const c = activity as CrisisActivity;
+      return (
+        <div key={activity.id} className={`${styles.activityCard} ${styles.activityCardCrisis}`}>
+          <div className={styles.activityCardHeader}>
+            <span className={`${styles.activityBadge} ${styles.badgeCrisis}`}>
+              <IconCrisis /> Crisis Segment Note
+            </span>
+            <span className={styles.activityTimestamp}>
+              [+{formatTime(activity.startedAtOffset)}]
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12, textAlign: 'left' }}>
+            <label className={styles.dictationLabel}>What happened?</label>
+            <textarea
+              className="textarea input"
+              placeholder="Type or dictate the crisis details here…"
+              value={c.content || ''}
+              onChange={(e) => mutateCurrent({ content: e.target.value } as any)}
+              rows={4}
+              style={{ width: '100%', resize: 'vertical' }}
+            />
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!c.content}
+              onClick={() => mutateCurrent({ status: 'completed' } as any)}
+            >
+              Save Crisis Log
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (activity.type === 'presidential_address') {
+      const pa = activity as PresidentialAddressActivity;
+      return (
+        <div key={activity.id} className={`${styles.activityCard} ${styles.activityCardPresident}`}>
+          <div className={styles.activityCardHeader}>
+            <span className={`${styles.activityBadge} ${styles.badgePresident}`}>
+              <IconPresident /> Presidential Address Note
+            </span>
+            <span className={styles.activityTimestamp}>
+              [+{formatTime(activity.startedAtOffset)}]
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12, textAlign: 'left' }}>
+            <label className={styles.dictationLabel}>Address content</label>
+            <textarea
+              className="textarea input"
+              placeholder="Type or dictate address transcription here…"
+              value={pa.content || ''}
+              onChange={(e) => mutateCurrent({ content: e.target.value } as any)}
+              rows={4}
+              style={{ width: '100%', resize: 'vertical' }}
+            />
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!pa.content}
+              onClick={() => mutateCurrent({ status: 'completed' } as any)}
+            >
+              Save Address Note
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return null;
   }
 
@@ -1911,6 +2530,13 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
 
   return (
     <div className={styles.trackerContainer}>
+      {/* Persistent recording status bar */}
+      <div className={styles.persistentIndicator}>
+        <span className={`${styles.statusDot} ${isMeetingActive ? styles.statusRecording : ''}`} />
+        <span className={styles.persistentTimerText}>
+          {isMeetingActive ? `Active: ${formatTime(recordingSeconds)}` : 'Paused'}
+        </span>
+      </div>
       {/* ── Audio Error Full-Screen Overlay ───────────────────────────────── */}
       {audioError && (
         <div className={styles.audioErrorOverlay}>
@@ -2163,13 +2789,16 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                   { type: 'gsl', Icon: IconGsl, label: 'GSL', sub: 'General Speakers List' },
                   { type: 'mod_coc', Icon: IconModCoc, label: 'Mod Coc', sub: 'Moderated Caucus' },
                   { type: 'unmod_coc', Icon: IconUnmod, label: 'Unmod Coc', sub: 'Unmoderated Caucus' },
+                  { type: 'vote', Icon: IconVote, label: 'Formal Vote', sub: 'Vote on Draft Resolution' },
+                  { type: 'crisis', Icon: IconCrisis, label: 'Crisis Log', sub: 'Crisis segment note' },
+                  { type: 'presidential_address', Icon: IconPresident, label: 'President Address', sub: 'Executive board note' },
                 ] as const
               ).map((opt) => (
                 <button
                   type="button"
                   key={opt.type}
                   className={styles.activityTypeCard}
-                  onClick={() => addActivity(opt.type)}
+                  onClick={() => addActivity(opt.type as any)}
                 >
                   <span className={styles.activityTypeIcon}><opt.Icon /></span>
                   <span className={styles.activityTypeLabel}>{opt.label}</span>

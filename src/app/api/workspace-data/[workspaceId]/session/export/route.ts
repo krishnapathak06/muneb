@@ -37,6 +37,13 @@ interface ActivityRecord {
   speakers?: SpeakerEntry[];
   // unmod
   durationSeconds?: number;
+  // vote
+  drTitle?: string;
+  authors?: string[];
+  signatories?: string[];
+  votes?: { countryId: string; vote: 'for' | 'against' | 'abstain' }[];
+  // crisis & presidential_address
+  content?: string;
 }
 
 interface GlobalPoint extends PointEntry {
@@ -171,6 +178,34 @@ export async function GET(
       lines.push(`${ts} ── UNMODERATED CAUCUS — ${outcomeStr} ${'─'.repeat(25)}`);
       if (act.raisedBy) lines.push(`  Raised by: ${getName(act.raisedBy)}`);
       lines.push(`  Duration:  ${durLabel}`);
+      lines.push('');
+    }
+
+    if (act.type === 'vote') {
+      const outcomeStr = act.outcome === 'passed' ? '✓ PASSED' : act.outcome === 'failed' ? '✗ FAILED' : 'PENDING';
+      const forCount = act.votes?.filter(v => v.vote === 'for').length ?? 0;
+      const againstCount = act.votes?.filter(v => v.vote === 'against').length ?? 0;
+      const abstainCount = act.votes?.filter(v => v.vote === 'abstain').length ?? 0;
+      lines.push(`${ts} ── FORMAL VOTE — ${outcomeStr} ${'─'.repeat(30)}`);
+      lines.push(`  DR: ${act.drTitle}`);
+      lines.push(`  Authors: ${(act.authors ?? []).map(getName).join(', ')}`);
+      lines.push(`  Signatories: ${(act.signatories ?? []).map(getName).join(', ')}`);
+      lines.push(`  Tally: ${forCount} For · ${againstCount} Against · ${abstainCount} Abstain`);
+      for (const v of (act.votes ?? [])) {
+        lines.push(`    ${getName(v.countryId).padEnd(26)} ${v.vote.toUpperCase()}`);
+      }
+      lines.push('');
+    }
+
+    if (act.type === 'crisis') {
+      lines.push(`${ts} ── CRISIS ${'─'.repeat(45)}`);
+      lines.push(`  ${act.content}`);
+      lines.push('');
+    }
+
+    if (act.type === 'presidential_address') {
+      lines.push(`${ts} ── PRESIDENTIAL ADDRESS ${'─'.repeat(30)}`);
+      lines.push(`  ${act.content}`);
       lines.push('');
     }
   }
