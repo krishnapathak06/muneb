@@ -192,7 +192,7 @@
 /* ─── Main Two-Column Layout ──────────────────────────────────────────────── */
 .trackerMain {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: 1fr;
   gap: var(--space-5);
   flex: 1;
   min-height: 0;
@@ -1606,7 +1606,6 @@
   gap: 8px;
   box-shadow: var(--saas-shadow-md);
   z-index: 999;
-  pointer-events: none;
 }
 
 .persistentTimerText {

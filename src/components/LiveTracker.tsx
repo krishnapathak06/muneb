@@ -1117,6 +1117,31 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
     };
   }, [workspaceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keyboard shortcuts for Global Points Modal
+  useEffect(() => {
+    const handleShortcut = (e: KeyboardEvent) => {
+      if (!isMeetingActive) return;
+
+      const isEditing =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement ||
+        (e.target instanceof HTMLElement && e.target.isContentEditable);
+
+      const isHotkey =
+        (!isEditing && (e.key.toLowerCase() === 'g' || e.key.toLowerCase() === 'p')) ||
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g');
+
+      if (isHotkey) {
+        e.preventDefault();
+        setGlobalPointOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, [isMeetingActive]);
+
   async function loadSession() {
     try {
       const res = await fetch(`/api/workspace-data/${workspaceId}/session`);
@@ -2533,9 +2558,48 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
       {/* Persistent recording status bar */}
       <div className={styles.persistentIndicator}>
         <span className={`${styles.statusDot} ${isMeetingActive ? styles.statusRecording : ''}`} />
-        <span className={styles.persistentTimerText}>
-          {isMeetingActive ? `Active: ${formatTime(recordingSeconds)}` : 'Paused'}
-        </span>
+        
+        {isMeetingActive ? (
+          <>
+            <span className={styles.persistentTimerText}>
+              ACTIVE: {formatTime(recordingSeconds)}
+            </span>
+            <button
+              type="button"
+              className="btn btn-sm btn-danger"
+              onClick={stopMeeting}
+              style={{ fontSize: 11, padding: '2px 8px', fontWeight: 700 }}
+            >
+              End Session
+            </button>
+          </>
+        ) : (
+          <>
+            <span className={styles.persistentTimerText}>
+              PAUSED
+            </span>
+            <select
+              className="select"
+              value={chunkSize}
+              onChange={(e) => setChunkSize(parseInt(e.target.value))}
+              style={{ fontSize: 11, padding: '2px 4px', height: 24, minWidth: 100 }}
+            >
+              {CHUNK_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={startMeeting}
+              style={{ fontSize: 11, padding: '2px 8px', fontWeight: 700 }}
+            >
+              Begin Session
+            </button>
+          </>
+        )}
       </div>
       {/* ── Audio Error Full-Screen Overlay ───────────────────────────────── */}
       {audioError && (
@@ -2594,29 +2658,6 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
               Export Session (.txt)
             </button>
           )}
-          {!isMeetingActive ? (
-            <div className={styles.sessionStartGroup}>
-              <select
-                className="select"
-                value={chunkSize}
-                onChange={(e) => setChunkSize(parseInt(e.target.value))}
-                style={{ minWidth: 160, fontSize: 12 }}
-              >
-                {CHUNK_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <button type="button" className="btn btn-primary" onClick={startMeeting}>
-                Begin Committee Session
-              </button>
-            </div>
-          ) : (
-            <button type="button" className="btn btn-danger" onClick={stopMeeting}>
-              End Session
-            </button>
-          )}
         </div>
       </div>
 
@@ -2668,109 +2709,6 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
               <p className={styles.emptyTimelineSub}>Add your first activity to start logging records.</p>
             </div>
           )}
-        </div>
-
-        {/* Right: Audio Playback */}
-        <div className={styles.audioCol}>
-          {totalPlaybackDuration > 0 ? (
-            <div className={`card ${styles.playbackCard}`}>
-              <h4 className={styles.audioColTitle}>
-                <IconAudio /> Session Recording
-              </h4>
-              <div className={styles.playerTop}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={togglePlayPause}
-                  style={{ width: 80 }}
-                >
-                  {isPlaying ? 'Pause' : 'Play'}
-                </button>
-                <div className={styles.playerTimeline}>
-                  <span className={styles.timeLabel}>{formatTime(currentTime)}</span>
-                  <input
-                    className={styles.seekBar}
-                    type="range"
-                    min={0}
-                    max={totalPlaybackDuration}
-                    step={0.1}
-                    value={currentTime}
-                    onChange={(e) => handleScrub(parseFloat(e.target.value))}
-                  />
-                  <span className={styles.timeLabel}>{formatTime(totalPlaybackDuration)}</span>
-                </div>
-              </div>
-              <div className={styles.playerSpeedControl}>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginRight: 12, fontWeight: 500 }}>
-                  Speed
-                </span>
-                {[1, 1.25, 1.5, 2].map((sp) => (
-                  <button
-                    key={sp}
-                    type="button"
-                    className={`tab ${playbackSpeed === sp ? 'active' : ''}`}
-                    onClick={() => {
-                      setPlaybackSpeed(sp);
-                      if (audioRef.current) audioRef.current.playbackRate = sp;
-                    }}
-                    style={{ padding: '2px 10px', fontSize: 11 }}
-                  >
-                    {sp}x
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            isMeetingActive && (
-              <div className={styles.recordingIndicatorCard}>
-                <div className={styles.visualizerWaveform}>
-                  <span className={styles.visualizerBar} />
-                  <span className={styles.visualizerBar} />
-                  <span className={styles.visualizerBar} />
-                  <span className={styles.visualizerBar} />
-                  <span className={styles.visualizerBar} />
-                  <span className={styles.visualizerBar} />
-                </div>
-                <span className={styles.recordingLiveText}>Recording session audio…</span>
-                <span className={styles.recordingLiveSub}>
-                  {manifest.segments.length} segment{manifest.segments.length !== 1 ? 's' : ''} saved
-                </span>
-              </div>
-            )
-          )}
-
-          {/* Global points log — comment-feed style */}
-          {sessionData.globalPoints.length > 0 && (
-            <div className={styles.globalPointsLog}>
-              <h4 className={styles.audioColTitle}>
-                <IconBolt /> Global Points Feed
-              </h4>
-              {sessionData.globalPoints.map((pt) => {
-                const pName = getName(pt.raisedBy);
-                return (
-                  <div key={pt.id} className={styles.globalPointLogRow}>
-                    <CountryAvatar name={pName} size={30} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
-                        <span className={styles.globalPointRaisedBy}>{pName}</span>
-                        <span className={styles.pointTypeBadge}>{POINT_LABELS[pt.type]}</span>
-                        <span className={styles.globalPointTime}>{formatTime(pt.raisedAtOffset)}</span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: 13, color: 'var(--saas-text-secondary)', lineHeight: 1.5 }}>
-                        {pt.content}
-                      </p>
-                      {pt.answer && (
-                        <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--saas-text-muted)', fontStyle: 'italic', paddingLeft: 10, borderLeft: '2px solid var(--saas-border-default)' }}>
-                          {pt.answer}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
         </div>
       </div>
 
