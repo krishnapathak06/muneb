@@ -1202,3 +1202,391 @@
   25%      { transform: translateX(-2px); }
   75%      { transform: translateX(2px); }
 }
+
+/* ─── Split Screen During Speech Layout ──────────────────────────────────── */
+.speakerPhaseGrid {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .speakerPhaseGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.speakerPhaseLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.speakerPhaseRight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--saas-shadow-sm);
+}
+
+.speakerActiveConsole {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.activeSpeakerCard {
+  background: var(--saas-bg-elevated);
+  border: 1.5px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--saas-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.activeSpeakerCard.speakerWarning {
+  border-color: var(--saas-accent-warn);
+  background: rgba(245, 158, 11, 0.02);
+}
+
+.activeSpeakerCard.speakerExpired {
+  border-color: var(--saas-accent-danger);
+  background: rgba(239, 68, 68, 0.02);
+}
+
+.activeSpeakerMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.activeSpeakerTitle {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--saas-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.activeSpeakerName {
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--saas-text-primary);
+}
+
+.activeSpeakerTimerBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4) 0;
+}
+
+.timerDisplayLarge {
+  font-size: 60px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--saas-text-primary);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.speakerWarning .timerDisplayLarge {
+  color: var(--saas-accent-warn);
+}
+
+.speakerExpired .timerDisplayLarge {
+  color: var(--saas-accent-danger);
+  animation: shake 0.5s ease-in-out infinite;
+}
+
+.timerLimitText {
+  font-size: 11px;
+  color: var(--saas-text-muted);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.timerControlsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-top: 1px solid var(--saas-border-default);
+  padding-top: var(--space-4);
+  width: 100%;
+}
+
+.dictationWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: left;
+}
+
+.dictationLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--saas-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.speakerActionsBar {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+}
+
+/* POIs & Previous Speakers Lists */
+.poiSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--saas-border-default);
+  padding-bottom: var(--space-4);
+}
+
+.poiTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--saas-text-muted);
+  margin: 0;
+}
+
+.poiHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.prevSpeakersSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  text-align: left;
+  padding-top: var(--space-2);
+}
+
+.prevSpeakersScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prevSpeakersEmpty {
+  font-size: 12px;
+  color: var(--saas-text-muted);
+  font-style: italic;
+}
+
+/* ─── Expandable Details Completed Cards ─────────────────────────────────── */
+.expandChevron {
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--saas-radius-sm);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  transition: all 0.15s ease;
+}
+
+.expandChevron:hover {
+  background: var(--saas-bg-input);
+  color: var(--saas-accent-primary);
+}
+
+.expandedContent {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  text-align: left;
+}
+
+.expandedDivider {
+  height: 1px;
+  background: var(--saas-border-default);
+  margin: var(--space-2) 0;
+}
+
+.expandedSubTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--saas-text-muted);
+  margin: 0;
+}
+
+/* Roster Attendance Status Grid */
+.expandedAttendanceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.expandedAttendanceRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-md);
+}
+
+.expandedCountryName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--saas-text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Speech History Roster Log */
+.expandedSpeakersList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.expandedSpeakerRow {
+  padding: var(--space-4);
+  background: var(--saas-bg-elevated);
+  border: 1px solid var(--saas-border-default);
+  border-radius: var(--saas-radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.expandedSpeakerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.speakerIndexInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.speakerIndex {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--saas-text-muted);
+}
+
+.speakerName {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--saas-text-primary);
+}
+
+.speakerTimeOffset {
+  font-size: 11px;
+  color: var(--saas-text-muted);
+  font-family: var(--font-mono);
+}
+
+.speechProse {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--saas-text-secondary);
+  font-style: italic;
+  margin: 4px 0;
+  background: var(--saas-bg-surface);
+  padding: 8px 12px;
+  border-radius: var(--saas-radius-md);
+  border-left: 3px solid var(--saas-accent-primary);
+}
+
+.speechEmpty {
+  font-size: 12px;
+  color: var(--saas-text-muted);
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.speechPoints {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  border-top: 1px dashed var(--saas-border-default);
+  padding-top: 8px;
+}
+
+.speechPointsTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--saas-text-muted);
+}
+
+.speechPointRow {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--saas-bg-surface);
+  border: 1px solid var(--saas-border-default);
+  padding: 8px;
+  border-radius: var(--saas-radius-md);
+}
+
+.pointLabelBadge {
+  font-size: 8px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.badgePrivilege {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--confidence-good);
+}
+
+.badgeInquiry {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--saas-accent-primary);
+}
+
+.badgeOrder {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--saas-accent-danger);
+}
+
+.pointContentText {
+  font-size: 12px;
+  color: var(--saas-text-secondary);
+  margin: 0;
+}
+
+.pointAnswerText {
+  font-size: 11px;
+  color: var(--confidence-good);
+  font-weight: 600;
+  margin: 0;
+  padding-left: 6px;
+  border-left: 2px solid var(--confidence-good);
+}
+

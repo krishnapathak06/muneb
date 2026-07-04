@@ -7,21 +7,35 @@ import QnaFeed from './dashboard/QnaFeed';
 import LiveTracker from './LiveTracker';
 import styles from './Dashboard.module.css';
 
+import { useWorkspace } from './WorkspaceContext';
+
 interface SubIssue { id: string; title: string; }
 interface Country { id: string; name: string; }
 
 interface Props { workspaceId: string; }
 
 export default function Dashboard({ workspaceId }: Props) {
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [subIssues, setSubIssues] = useState<SubIssue[]>([]);
   const [mainAgenda, setMainAgenda] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<string>('overview');
   const [countrySearch, setCountrySearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'research' | 'live'>('research');
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const {
+    countries,
+    setCountries,
+    subIssues,
+    setSubIssues,
+    selectedCountryId,
+    setSelectedCountryId,
+    selectedTopicId,
+    setSelectedTopicId,
+    viewMode,
+    setViewMode,
+  } = useWorkspace();
+
+  const selectedCountry = countries.find((c) => c.id === selectedCountryId) || null;
+  const selectedTopic = selectedTopicId || 'overview';
 
   useEffect(() => {
     loadWorkspaceData();
@@ -41,8 +55,8 @@ export default function Dashboard({ workspaceId }: Props) {
       setCountries(countryList);
       setSubIssues(agendaData?.sub_issues ?? []);
       setMainAgenda(agendaData?.main_agenda ?? '');
-      if (countryList.length > 0) {
-        setSelectedCountry(countryList[0]);
+      if (countryList.length > 0 && !selectedCountryId) {
+        setSelectedCountryId(countryList[0].id);
       }
     } catch (err) {
       console.error(err);
@@ -109,30 +123,40 @@ export default function Dashboard({ workspaceId }: Props) {
                   placeholder="Search countries…"
                   value={countrySearch}
                   onChange={(e) => setCountrySearch(e.target.value)}
+                  onFocus={() => setIsDropdownOpen(true)}
+                  onBlur={() => {
+                    setTimeout(() => setIsDropdownOpen(false), 200);
+                  }}
                   style={{ width: 180, height: 32, fontSize: 13 }}
                 />
-                {countrySearch && (
-                  <div className={styles.dropdown}>
-                    {filteredCountries.slice(0, 12).map((c) => (
+                {isDropdownOpen && (
+                  <div className={styles.dropdown} style={{ maxHeight: 300, overflowY: 'auto' }}>
+                    {filteredCountries.map((c) => (
                       <button
                         type="button"
                         key={c.id}
                         className={styles.dropdownItem}
-                        onClick={() => {
-                          setSelectedCountry(c);
+                        onMouseDown={() => {
+                          setSelectedCountryId(c.id);
                           setCountrySearch('');
+                          setIsDropdownOpen(false);
                         }}
                       >
                         {c.name}
                       </button>
                     ))}
+                    {filteredCountries.length === 0 && (
+                      <div style={{ padding: '10px 16px', fontSize: 12, color: 'var(--text-muted)' }}>
+                        No countries found
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
               {selectedCountry && !countrySearch && (
                 <div className={styles.selectedCountry}>
                   <span>{selectedCountry.name}</span>
-                  <button type="button" className={styles.clearCountry} onClick={() => { setSelectedCountry(null); setCountrySearch(''); }}>×</button>
+                  <button type="button" className={styles.clearCountry} onClick={() => { setSelectedCountryId(null); setCountrySearch(''); }}>×</button>
                 </div>
               )}
             </div>
@@ -148,7 +172,7 @@ export default function Dashboard({ workspaceId }: Props) {
                   key={t.id}
                   id={`tab-${t.id}`}
                   className={`${styles.topicPill} ${selectedTopic === t.id ? styles.topicPillActive : ''}`}
-                  onClick={() => setSelectedTopic(t.id)}
+                  onClick={() => setSelectedTopicId(t.id)}
                 >
                   {t.id === 'overview' && (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 6 }}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>

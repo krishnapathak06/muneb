@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useWorkspace } from './WorkspaceContext';
 import styles from './LiveTracker.module.css';
 
 // ─── Audio Types (preserved from original) ────────────────────────────────────
@@ -382,11 +383,27 @@ function PointForm({
 function CompletedActivityCard({
   activity,
   countries,
+  isExpanded,
+  onToggleExpand,
 }: {
   activity: ActivityRecord;
   countries: Country[];
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 }) {
   const getName = (id: string) => countries.find((c) => c.id === id)?.name ?? id;
+
+  const headerClickProps = {
+    onClick: onToggleExpand,
+    style: { cursor: 'pointer', userSelect: 'none' as const },
+    title: isExpanded ? 'Click to collapse details' : 'Click to expand details'
+  };
+
+  const expandIcon = (
+    <span className={styles.expandChevron} style={{ marginLeft: 'auto', color: 'var(--saas-text-muted)', fontSize: 11 }}>
+      {isExpanded ? 'Collapse ▲' : 'Expand Details ▼'}
+    </span>
+  );
 
   if (activity.type === 'attendance') {
     const att = activity as AttendanceActivity;
@@ -394,12 +411,13 @@ function CompletedActivityCard({
     const pv = att.rolls.filter((r) => r.status === 'present_and_voting').length;
     const absent = att.rolls.filter((r) => r.status === 'absent').length;
     return (
-      <div className={`${styles.activityCard} ${styles.activityCardAttendance} ${styles.activityCardCompleted}`}>
-        <div className={styles.activityCardHeader}>
+      <div className={`${styles.activityCard} ${styles.activityCardAttendance} ${styles.activityCardCompleted}`} id={`activity-card-${activity.id}`}>
+        <div className={styles.activityCardHeader} {...headerClickProps}>
           <span className={`${styles.activityBadge} ${styles.badgeAttendance}`}>
             <IconAttendance /> Attendance Roll #{att.attendanceIndex}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
+          {expandIcon}
         </div>
         <div style={{ display: 'flex', gap: 24, marginTop: 4 }}>
           <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)' }}>
@@ -412,6 +430,37 @@ function CompletedActivityCard({
             <strong style={{ color: 'var(--saas-accent-danger)', fontSize: 15 }}>{absent}</strong> Absent
           </span>
         </div>
+
+        {isExpanded && (
+          <div className={styles.expandedContent}>
+            <div className={styles.expandedDivider} />
+            <h5 className={styles.expandedSubTitle}>Roster Attendance Status</h5>
+            <div className={styles.expandedAttendanceGrid}>
+              {countries.map((c) => {
+                const roll = att.rolls.find((r) => r.countryId === c.id);
+                const status = roll?.status ?? 'absent';
+                let badgeClass = 'badge-red';
+                let statusLabel = 'Absent';
+                if (status === 'present') {
+                  badgeClass = 'badge-green';
+                  statusLabel = 'Present';
+                } else if (status === 'present_and_voting') {
+                  badgeClass = 'badge-blue';
+                  statusLabel = 'Present & Voting';
+                }
+                return (
+                  <div key={c.id} className={styles.expandedAttendanceRow}>
+                    <CountryAvatar name={c.name} size={18} />
+                    <span className={styles.expandedCountryName}>{c.name}</span>
+                    <span className={`badge ${badgeClass}`} style={{ fontSize: 9, padding: '2px 8px' }}>
+                      {statusLabel}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -420,8 +469,8 @@ function CompletedActivityCard({
     const gsl = activity as GSLActivity;
     const gslSpeakerNames = gsl.speakers.slice(0, 4).map((s) => getName(s.countryId));
     return (
-      <div className={`${styles.activityCard} ${styles.activityCardGSL} ${styles.activityCardCompleted}`}>
-        <div className={styles.activityCardHeader}>
+      <div className={`${styles.activityCard} ${styles.activityCardGSL} ${styles.activityCardCompleted}`} id={`activity-card-${activity.id}`}>
+        <div className={styles.activityCardHeader} {...headerClickProps}>
           <span className={`${styles.activityBadge} ${styles.badgeGSL}`}>
             <IconGsl /> GSL
           </span>
@@ -429,6 +478,7 @@ function CompletedActivityCard({
             {gsl.outcome === 'passed' ? 'Passed' : 'Failed'}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
+          {expandIcon}
         </div>
         {gsl.outcome === 'passed' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
@@ -456,6 +506,51 @@ function CompletedActivityCard({
             </div>
           </div>
         )}
+
+        {isExpanded && gsl.outcome === 'passed' && (
+          <div className={styles.expandedContent}>
+            <div className={styles.expandedDivider} />
+            <h5 className={styles.expandedSubTitle}>Speech History</h5>
+            {gsl.speakers.length > 0 ? (
+              <div className={styles.expandedSpeakersList}>
+                {gsl.speakers.map((sp, idx) => (
+                  <div key={sp.id} className={styles.expandedSpeakerRow}>
+                    <div className={styles.expandedSpeakerHeader}>
+                      <div className={styles.speakerIndexInfo}>
+                        <span className={styles.speakerIndex}>{idx + 1}.</span>
+                        <CountryAvatar name={getName(sp.countryId)} size={20} />
+                        <strong className={styles.speakerName}>{getName(sp.countryId)}</strong>
+                      </div>
+                      <span className={styles.speakerTimeOffset}>[+{formatTime(sp.speechStartOffset)}]</span>
+                    </div>
+                    {sp.speechText ? (
+                      <p className={styles.speechProse}>"{sp.speechText}"</p>
+                    ) : (
+                      <p className={styles.speechEmpty}>No speech dictation saved.</p>
+                    )}
+                    {sp.points && sp.points.length > 0 && (
+                      <div className={styles.speechPoints}>
+                        <div className={styles.speechPointsTitle}>Points raised during speech:</div>
+                        {sp.points.map((pt) => (
+                          <div key={pt.id} className={styles.speechPointRow}>
+                            <span className={`${styles.pointLabelBadge} ${pt.type === 'ppp' ? styles.badgePrivilege : pt.type === 'ppi' ? styles.badgeInquiry : styles.badgeOrder}`}>
+                              {POINT_LABELS[pt.type] || pt.type}
+                            </span>
+                            <span className={styles.pointRaisedBy}>raised by {getName(pt.raisedBy)}</span>
+                            <p className={styles.pointContentText}>"{pt.content}"</p>
+                            {pt.answer && <p className={styles.pointAnswerText}>Answer: {pt.answer}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.speechEmpty}>No speakers recorded.</p>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -464,8 +559,8 @@ function CompletedActivityCard({
     const mc = activity as ModCocActivity;
     const mcSpeakerNames = mc.speakers.slice(0, 4).map((s) => getName(s.countryId));
     return (
-      <div className={`${styles.activityCard} ${styles.activityCardModCoc} ${styles.activityCardCompleted}`}>
-        <div className={styles.activityCardHeader}>
+      <div className={`${styles.activityCard} ${styles.activityCardModCoc} ${styles.activityCardCompleted}`} id={`activity-card-${activity.id}`}>
+        <div className={styles.activityCardHeader} {...headerClickProps}>
           <span className={`${styles.activityBadge} ${styles.badgeModCoc}`}>
             <IconModCoc /> Mod Coc
           </span>
@@ -473,27 +568,81 @@ function CompletedActivityCard({
             {mc.outcome === 'passed' ? 'Passed' : 'Failed'}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
+          {expandIcon}
         </div>
         {mc.topic && (
           <p style={{ fontSize: 13.5, color: 'var(--saas-text-primary)', fontWeight: 600, margin: '6px 0 6px 0' }}>
             {mc.topic}
           </p>
         )}
-        {mc.outcome === 'passed' && mc.speakers.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {mcSpeakerNames.map((n, i) => (
-              <span key={i} style={{ marginLeft: i === 0 ? 0 : -6 }}>
-                <CountryAvatar name={n} size={22} />
-              </span>
-            ))}
-            {mc.speakers.length > 4 && (
-              <span style={{ fontSize: 11, color: 'var(--saas-text-muted)', marginLeft: 4, fontWeight: 600 }}>
-                +{mc.speakers.length - 4}
-              </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)' }}>
+            Raised by <strong style={{ color: 'var(--saas-text-primary)' }}>{getName(mc.raisedBy)}</strong>
+          </span>
+          {mc.outcome === 'passed' && mc.speakers.length > 0 && (
+            <>
+              <span style={{ color: 'var(--saas-border-strong)', fontSize: 12 }}>·</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {mcSpeakerNames.map((n, i) => (
+                  <span key={i} style={{ marginLeft: i === 0 ? 0 : -6 }}>
+                    <CountryAvatar name={n} size={22} />
+                  </span>
+                ))}
+                {mc.speakers.length > 4 && (
+                  <span style={{ fontSize: 11, color: 'var(--saas-text-muted)', marginLeft: 4, fontWeight: 600 }}>
+                    +{mc.speakers.length - 4}
+                  </span>
+                )}
+                <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)', marginLeft: 8 }}>
+                  {mc.speakers.length} speaker{mc.speakers.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {isExpanded && mc.outcome === 'passed' && (
+          <div className={styles.expandedContent}>
+            <div className={styles.expandedDivider} />
+            <h5 className={styles.expandedSubTitle}>Speech History</h5>
+            {mc.speakers.length > 0 ? (
+              <div className={styles.expandedSpeakersList}>
+                {mc.speakers.map((sp, idx) => (
+                  <div key={sp.id} className={styles.expandedSpeakerRow}>
+                    <div className={styles.expandedSpeakerHeader}>
+                      <div className={styles.speakerIndexInfo}>
+                        <span className={styles.speakerIndex}>{idx + 1}.</span>
+                        <CountryAvatar name={getName(sp.countryId)} size={20} />
+                        <strong className={styles.speakerName}>{getName(sp.countryId)}</strong>
+                      </div>
+                      <span className={styles.speakerTimeOffset}>[+{formatTime(sp.speechStartOffset)}]</span>
+                    </div>
+                    {sp.speechText ? (
+                      <p className={styles.speechProse}>"{sp.speechText}"</p>
+                    ) : (
+                      <p className={styles.speechEmpty}>No speech dictation saved.</p>
+                    )}
+                    {sp.points && sp.points.length > 0 && (
+                      <div className={styles.speechPoints}>
+                        <div className={styles.speechPointsTitle}>Points raised during speech:</div>
+                        {sp.points.map((pt) => (
+                          <div key={pt.id} className={styles.speechPointRow}>
+                            <span className={`${styles.pointLabelBadge} ${pt.type === 'ppp' ? styles.badgePrivilege : pt.type === 'ppi' ? styles.badgeInquiry : styles.badgeOrder}`}>
+                              {POINT_LABELS[pt.type] || pt.type}
+                            </span>
+                            <span className={styles.pointRaisedBy}>raised by {getName(pt.raisedBy)}</span>
+                            <p className={styles.pointContentText}>"{pt.content}"</p>
+                            {pt.answer && <p className={styles.pointAnswerText}>Answer: {pt.answer}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.speechEmpty}>No speakers recorded.</p>
             )}
-            <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)', marginLeft: 8 }}>
-              {mc.speakers.length} speaker{mc.speakers.length !== 1 ? 's' : ''}
-            </span>
           </div>
         )}
       </div>
@@ -505,8 +654,8 @@ function CompletedActivityCard({
     const mins = uc.durationSeconds / 60;
     const label = mins >= 60 ? '1 hour' : `${mins} minutes`;
     return (
-      <div className={`${styles.activityCard} ${styles.activityCardUnmod} ${styles.activityCardCompleted}`}>
-        <div className={styles.activityCardHeader}>
+      <div className={`${styles.activityCard} ${styles.activityCardUnmod} ${styles.activityCardCompleted}`} id={`activity-card-${activity.id}`}>
+        <div className={styles.activityCardHeader} {...headerClickProps}>
           <span className={`${styles.activityBadge} ${styles.badgeUnmod}`}>
             <IconUnmod /> Unmod Coc
           </span>
@@ -516,6 +665,7 @@ function CompletedActivityCard({
             </span>
           )}
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
+          {expandIcon}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
           {uc.raisedBy && (
@@ -535,6 +685,17 @@ function CompletedActivityCard({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function LiveTracker({ workspaceId, countries }: Props) {
+  const {
+    setActivities,
+    setCountries,
+    expandedActivityId,
+    setExpandedActivityId,
+    triggerScrollToActivityId,
+    setTriggerScrollToActivityId,
+  } = useWorkspace();
+
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+
   // ── Audio recording state (preserved) ─────────────────────────────────────
   const [isMeetingActive, setIsMeetingActive] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -587,6 +748,44 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
   // Global floating point
   const [globalPointOpen, setGlobalPointOpen] = useState(false);
   const [globalPointDraft, setGlobalPointDraft] = useState<Partial<PointEntry>>({});
+
+  // Sync session activities list with sidebar context
+  useEffect(() => {
+    setActivities(sessionData.activities);
+  }, [sessionData.activities, setActivities]);
+
+  // Sync countries array with sidebar context
+  useEffect(() => {
+    setCountries(countries);
+  }, [countries, setCountries]);
+
+  // Expand card if triggered from sidebar activities list
+  useEffect(() => {
+    if (expandedActivityId) {
+      setExpandedCards((prev) => ({ ...prev, [expandedActivityId]: true }));
+    }
+  }, [expandedActivityId]);
+
+  // Scroll to card if triggered from sidebar activities list
+  useEffect(() => {
+    if (triggerScrollToActivityId) {
+      const el = document.getElementById(`activity-card-${triggerScrollToActivityId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTriggerScrollToActivityId(null);
+      }
+    }
+  }, [triggerScrollToActivityId, setTriggerScrollToActivityId]);
+
+  const toggleCardExpand = (actId: string) => {
+    const nextVal = !expandedCards[actId];
+    setExpandedCards((prev) => ({ ...prev, [actId]: nextVal }));
+    if (nextVal) {
+      setExpandedActivityId(actId);
+    } else if (expandedActivityId === actId) {
+      setExpandedActivityId(null);
+    }
+  };
 
   // ── Load session on mount ──────────────────────────────────────────────────
   useEffect(() => {
@@ -865,6 +1064,19 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
     setSpeakerElapsed(0);
   }
 
+  function pauseSpeakerTimer() {
+    if (speakerTimerRef.current) clearInterval(speakerTimerRef.current);
+    setSpeakerTimerRunning(false);
+  }
+
+  function resumeSpeakerTimer() {
+    setSpeakerTimerRunning(true);
+    if (speakerTimerRef.current) clearInterval(speakerTimerRef.current);
+    speakerTimerRef.current = setInterval(() => {
+      setSpeakerElapsed((prev) => prev + 1);
+    }, 1000);
+  }
+
   // ── Derived state ──────────────────────────────────────────────────────────
 
   const currentActivity =
@@ -1128,108 +1340,148 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
           </div>
         </div>
 
-        {/* Previous speakers list */}
-        {activity.speakers.length > 0 && (
-          <div className={styles.prevSpeakers}>
-            <div className={styles.prevSpeakersLabel}>Speakers so far</div>
-            {activity.speakers.map((sp, i) => (
-              <div key={sp.id} className={styles.prevSpeakerRow}>
-                <span className={styles.prevSpeakerNum}>{i + 1}.</span>
-                <CountryAvatar name={getName(sp.countryId)} size={24} />
-                <span className={styles.prevSpeakerName}>{getName(sp.countryId)}</span>
-                <span className={styles.prevSpeakerTime}>{formatTime(sp.speechStartOffset)}</span>
-                {sp.points.length > 0 && (
-                  <span className={styles.prevSpeakerPointsTag}>
-                    {sp.points.length} pt{sp.points.length !== 1 ? 's' : ''}
-                  </span>
-                )}
+        <div className={styles.speakerPhaseGrid}>
+          {/* Left: Active Console */}
+          <div className={styles.speakerPhaseLeft}>
+            {!currentSpeakerStarted ? (
+              <div className={styles.speakerSelectRow}>
+                <DelegateSelect
+                  label={`Select Speaker ${activity.speakers.length + 1}`}
+                  countries={countries}
+                  value={currentSpeakerCountryId}
+                  onChange={setCurrentSpeakerCountryId}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!currentSpeakerCountryId}
+                  onClick={() => handleStartSpeech(activity)}
+                  style={{ width: '100%', height: 40, fontSize: 13, fontWeight: 700, marginTop: 8 }}
+                >
+                  Start Speech & Timer
+                </button>
               </div>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className={styles.speakerActiveConsole}>
+                {/* Active Speaker Dashboard */}
+                <div className={`${styles.activeSpeakerCard} ${
+                  speakerExpired ? styles.speakerExpired : speakerWarning ? styles.speakerWarning : ''
+                }`}>
+                  <div className={styles.activeSpeakerMeta}>
+                    <CountryAvatar name={getName(currentSpeakerCountryId)} size={32} />
+                    <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                      <div className={styles.activeSpeakerTitle}>CURRENT SPEAKER</div>
+                      <div className={styles.activeSpeakerName}>{getName(currentSpeakerCountryId)}</div>
+                    </div>
+                  </div>
+                  
+                  {/* Timer display */}
+                  <div className={styles.activeSpeakerTimerBlock}>
+                    <div className={styles.timerDisplayLarge}>{speakerDisplayTime}</div>
+                    <div className={styles.timerLimitText}>Limit: {formatTime(speakerTimeLimit)}</div>
+                  </div>
 
+                  {/* Live Timer controls */}
+                  <div className={styles.timerControlsRow}>
+                    {speakerTimerRunning ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={pauseSpeakerTimer}
+                        style={{ background: 'rgba(239, 68, 68, 0.08)', color: 'var(--saas-accent-danger)', borderColor: 'rgba(239, 68, 68, 0.15)' }}
+                      >
+                        ⏸ Pause
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={resumeSpeakerTimer}
+                      >
+                        ▶ Resume
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setSpeakerElapsed(0)}
+                    >
+                      ⟳ Reset
+                    </button>
+                    
+                    {/* Timer Mode selector */}
+                    <div className={styles.speakerTimerToggle} style={{ marginLeft: 'auto' }}>
+                      <button
+                        type="button"
+                        className={`${styles.timerModeBtn} ${
+                          speakerTimerMode === 'stopwatch' ? styles.timerModeBtnActive : ''
+                        }`}
+                        onClick={() => setSpeakerTimerMode('stopwatch')}
+                      >
+                        Stopwatch
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.timerModeBtn} ${
+                          speakerTimerMode === 'countdown' ? styles.timerModeBtnActive : ''
+                        }`}
+                        onClick={() => setSpeakerTimerMode('countdown')}
+                      >
+                        Countdown
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-        {/* Current speaker entry */}
-        <div className={styles.speakerEntry}>
-          {!currentSpeakerStarted ? (
-            <div className={styles.speakerSelectRow}>
-              <DelegateSelect
-                label={`Speaker ${activity.speakers.length + 1}`}
-                countries={countries}
-                value={currentSpeakerCountryId}
-                onChange={setCurrentSpeakerCountryId}
-              />
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={!currentSpeakerCountryId}
-                onClick={() => handleStartSpeech(activity)}
-              >
-                Start Speech
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Big Timer Display */}
-              <div
-                className={`${styles.speakerTimerDisplay} ${
-                  speakerExpired
-                    ? styles.speakerTimerExpired
-                    : speakerWarning
-                    ? styles.speakerTimerWarning
-                    : ''
-                }`}
-              >
-                <div className={styles.speakerTimerTime}>{speakerDisplayTime}</div>
-                <div className={styles.speakerTimerName}>{getName(currentSpeakerCountryId)}</div>
-                <div className={styles.speakerTimerToggle}>
+                {/* Speech Dictation Notes Textarea */}
+                <div className={styles.dictationWrapper}>
+                  <label className={styles.dictationLabel}>Speech Notes & Dictation Transcription</label>
+                  <textarea
+                    className={`input ${styles.speechTextarea}`}
+                    placeholder="Type or dictate points made during the speech here..."
+                    value={currentSpeechText}
+                    onChange={(e) => setCurrentSpeechText(e.target.value)}
+                    rows={5}
+                  />
+                </div>
+
+                {/* Speaker actions */}
+                <div className={styles.speakerActionsBar}>
                   <button
                     type="button"
-                    className={`${styles.timerModeBtn} ${
-                      speakerTimerMode === 'stopwatch' ? styles.timerModeBtnActive : ''
-                    }`}
-                    onClick={() => setSpeakerTimerMode('stopwatch')}
+                    className="btn btn-secondary"
+                    onClick={handleAddNextSpeaker}
+                    style={{ width: '100%' }}
                   >
-                    Stopwatch
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.timerModeBtn} ${
-                      speakerTimerMode === 'countdown' ? styles.timerModeBtnActive : ''
-                    }`}
-                    onClick={() => setSpeakerTimerMode('countdown')}
-                  >
-                    Countdown
+                    Add Next Speaker
                   </button>
                 </div>
               </div>
+            )}
+          </div>
 
-              {/* Speech textarea */}
-              <textarea
-                className={`input ${styles.speechTextarea}`}
-                placeholder="Type or dictate the speech…"
-                value={currentSpeechText}
-                onChange={(e) => setCurrentSpeechText(e.target.value)}
-                rows={5}
-              />
-
-              {/* Saved points for this speaker */}
+          {/* Right: Points feed (POI) & Speaker timeline */}
+          <div className={styles.speakerPhaseRight}>
+            
+            {/* Points / POI entry log */}
+            <div className={styles.poiSection}>
+              <h5 className={styles.poiTitle}>Points & POIs Raised</h5>
+              
               {currentSpeakerPoints.length > 0 && (
-                <div className={styles.speakerPointsList}>
+                <div className={styles.speakerPointsList} style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 12 }}>
                   {currentSpeakerPoints.map((pt) => (
                     <div key={pt.id} className={styles.pointRow}>
-                      <span className={styles.pointTypeBadge}>{POINT_LABELS[pt.type]}</span>
-                      <span className={styles.pointRaisedBy}>↑ {getName(pt.raisedBy)}</span>
-                      <span className={styles.pointContent}>{pt.content}</span>
-                      {pt.answer && (
-                        <span className={styles.pointAnswer}>Answer: {pt.answer}</span>
-                      )}
+                      <span className={`${styles.pointTypeBadge} ${pt.type === 'ppp' ? styles.badgePrivilege : pt.type === 'ppi' ? styles.badgeInquiry : styles.badgeOrder}`}>
+                        {POINT_LABELS[pt.type] || pt.type}
+                      </span>
+                      <span className={styles.pointRaisedBy}>{getName(pt.raisedBy)}</span>
+                      <p className={styles.pointContentText}>"{pt.content}"</p>
+                      {pt.answer && <p className={styles.pointAnswerText}>Answer: {pt.answer}</p>}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Add point inline */}
               {addingPointToCurrentSpeaker ? (
                 <div className={styles.pointFormInline}>
                   <PointForm
@@ -1250,12 +1502,8 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                     </button>
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
-                      disabled={
-                        !currentPointDraft.type ||
-                        !currentPointDraft.raisedBy ||
-                        !currentPointDraft.content
-                      }
+                      className="btn btn-primary btn-sm"
+                      disabled={!currentPointDraft.type || !currentPointDraft.raisedBy || !currentPointDraft.content}
                       onClick={addCurrentSpeakerPoint}
                     >
                       Save Point
@@ -1268,17 +1516,31 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                   className={styles.addPointBtn}
                   onClick={() => setAddingPointToCurrentSpeaker(true)}
                 >
-                  + Add Point
+                  + Add Point / POI
                 </button>
               )}
+            </div>
 
-              <div className={styles.speakerActions}>
-                <button type="button" className="btn btn-secondary" onClick={handleAddNextSpeaker}>
-                  Add Next Speaker
-                </button>
-              </div>
-            </>
-          )}
+            {/* Speakers timeline so far */}
+            <div className={styles.prevSpeakersSection}>
+              <div className={styles.prevSpeakersLabel}>Speakers so far ({activity.speakers.length})</div>
+              {activity.speakers.length > 0 ? (
+                <div className={styles.prevSpeakersScroll} style={{ maxHeight: 150, overflowY: 'auto' }}>
+                  {activity.speakers.map((sp, idx) => (
+                    <div key={sp.id} className={styles.prevSpeakerRow}>
+                      <span className={styles.prevSpeakerNum}>{idx + 1}.</span>
+                      <CountryAvatar name={getName(sp.countryId)} size={20} />
+                      <span className={styles.prevSpeakerName}>{getName(sp.countryId)}</span>
+                      <span className={styles.prevSpeakerTime}>{formatTime(sp.speechStartOffset)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.prevSpeakersEmpty}>No speakers recorded yet.</div>
+              )}
+            </div>
+
+          </div>
         </div>
       </div>
     );
@@ -1739,7 +2001,12 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
           <div className={styles.activityTimeline}>
             {sessionData.activities.map((activity) =>
               activity.status === 'completed'
-                ? CompletedActivityCard({ activity, countries })
+                ? CompletedActivityCard({
+                    activity,
+                    countries,
+                    isExpanded: !!expandedCards[activity.id],
+                    onToggleExpand: () => toggleCardExpand(activity.id),
+                  })
                 : renderActiveActivity(activity)
             )}
           </div>

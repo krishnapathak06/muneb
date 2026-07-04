@@ -32,6 +32,8 @@ const STEP_FOR_STATUS: Record<string, number> = {
 
 const STATUS_FOR_STEP = ['intake', 'sub-issues', 'indicators', 'researching', 'done'];
 
+import { useWorkspace } from '@/components/WorkspaceContext';
+
 export default function WorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -41,6 +43,8 @@ export default function WorkspacePage() {
   const [intakeData, setIntakeData] = useState<{
     committee: string; agenda: string; countries: string[];
   } | null>(null);
+
+  const { setWorkspaceName, setWorkspaceStatus } = useWorkspace();
 
   async function refreshWorkspace() {
     const res = await fetch('/api/workspaces');
@@ -53,6 +57,18 @@ export default function WorkspacePage() {
   useEffect(() => {
     refreshWorkspace().finally(() => setLoading(false));
   }, [id]);
+
+  // Sync workspace details with global context sidebar
+  useEffect(() => {
+    if (ws) {
+      setWorkspaceName(ws.name);
+      setWorkspaceStatus(ws.status);
+    }
+    return () => {
+      setWorkspaceName(null);
+      setWorkspaceStatus(null);
+    };
+  }, [ws]);
 
   async function handleJumpToStep(targetIndex: number, stepName: string) {
     if (confirm(`Are you sure you want to go back to the "${stepName}" stage?`)) {
