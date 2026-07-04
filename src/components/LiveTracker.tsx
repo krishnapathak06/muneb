@@ -155,8 +155,8 @@ export const SPEAKER_COUNTS = Array.from({ length: 50 }, (_, i) => i + 1);
 
 const CHUNK_OPTIONS = [
   { label: '30 seconds (for testing)', value: 30 },
-  { label: '1 minute (for testing)', value: 60 },
-  { label: '10 minutes (default)', value: 600 },
+  { label: '1 minute (default, recommended)', value: 60 },
+  { label: '10 minutes (high memory risk)', value: 600 },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1003,7 +1003,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
   // ── Audio recording state (preserved) ─────────────────────────────────────
   const [isMeetingActive, setIsMeetingActive] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [chunkSize, setChunkSize] = useState(600);
+  const [chunkSize, setChunkSize] = useState(60);
   const [manifest, setManifest] = useState<Manifest>({ segments: [] });
   const [audioError, setAudioError] = useState<string | null>(null);
 
@@ -1022,6 +1022,13 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
   const chunkStartTimeRef = useRef<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Reliability Refs: Screen Wake Lock, silent background audio, mic watchdog tracking, and cumulative recording offsets
+  const wakeLockRef = useRef<any>(null);
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioTrackRef = useRef<MediaStreamTrack | null>(null);
+  const handleTrackDeathRef = useRef<(() => void) | null>(null);
+  const cumulativeOffsetRef = useRef<number>(0);
 
   // ── Session data state ────────────────────────────────────────────────────
   const [sessionData, setSessionData] = useState<SessionData>({
@@ -1032,6 +1039,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
 
   // ── UI workflow state ─────────────────────────────────────────────────────
   const [addActivityOpen, setAddActivityOpen] = useState(false);
+  const [loadingSession, setLoadingSession] = useState(true);
 
   // Speaker phase state
   const [currentSpeakerCountryId, setCurrentSpeakerCountryId] = useState('');
@@ -1052,6 +1060,16 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
   // Global floating point
   const [globalPointOpen, setGlobalPointOpen] = useState(false);
   const [globalPointDraft, setGlobalPointDraft] = useState<Partial<PointEntry>>({});
+
+  // Mic watchdog and recovery status states
+  const [micWarningOpen, setMicWarningOpen] = useState(false);
+  const [recoveringMic, setRecoveringMic] = useState(false);
+
+  // Mid-session delegate additions
+  const [addDelegateOpen, setAddDelegateOpen] = useState(false);
+  const [newDelegateName, setNewDelegateName] = useState('');
+  const [addDelegateError, setAddDelegateError] = useState<string | null>(null);
+  const [addingDelegate, setAddingDelegate] = useState(false);
 
   // Sync session activities list with sidebar context
   useEffect(() => {
@@ -1108,6 +1126,8 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
     return () => {
       cleanupRecording();
       stopSpeakerTimer();
+      releaseWakeLock();
+      stopSilentAudio();
       window.removeEventListener('keydown', handleGlobalKeyDown);
       if (audioRef.current) {
         audioRef.current.pause();
@@ -1146,10 +1166,19 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
     try {
       const res = await fetch(`/api/workspace-data/${workspaceId}/session`);
       const data = await res.json();
-      if (data.manifest) setManifest(data.manifest);
+      if (data.manifest) {
+        setManifest(data.manifest);
+        const totalDuration = (data.manifest.segments ?? []).reduce(
+          (acc: number, s: any) => acc + s.duration,
+          0
+        );
+        setRecordingSeconds(totalDuration);
+      }
       if (data.activities) setSessionData(data.activities);
     } catch (err) {
       console.error('Failed to load session', err);
+    } finally {
+      setLoadingSession(false);
     }
   }
 
@@ -1166,16 +1195,256 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
     }
   }
 
+  async function handleAddDelegate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newDelegateName.trim()) return;
+
+    setAddingDelegate(true);
+    setAddDelegateError(null);
+
+    try {
+      const res = await fetch(`/api/workspace-data/${workspaceId}/add-delegate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ countryName: newDelegateName }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to add delegate');
+      }
+
+      const newCountry = data.country;
+      // Update global context countries
+      setCountries([...countries, newCountry]);
+
+      // Update current activity if there is one active
+      let updatedActivities = [...sessionData.activities];
+      if (currentActivity) {
+        if (currentActivity.type === 'attendance') {
+          const att = currentActivity as AttendanceActivity;
+          if (!att.rolls.some(r => r.countryId === newCountry.id)) {
+            const updatedRolls = [...att.rolls, { countryId: newCountry.id, status: 'absent' as const }];
+            updatedActivities = sessionData.activities.map(a =>
+              a.id === currentActivity.id ? { ...a, rolls: updatedRolls } : a
+            ) as ActivityRecord[];
+          }
+        } else if (currentActivity.type === 'vote') {
+          const v = currentActivity as VoteActivity;
+          if (v.status === 'active' && v.votes && !v.votes.some(vt => vt.countryId === newCountry.id)) {
+            const updatedVotes = [...v.votes, { countryId: newCountry.id, vote: 'abstain' as const }];
+            updatedActivities = sessionData.activities.map(a =>
+              a.id === currentActivity.id ? { ...a, votes: updatedVotes } : a
+            ) as ActivityRecord[];
+          }
+        }
+      }
+
+      const updatedSessionData = {
+        ...sessionData,
+        activities: updatedActivities,
+      };
+
+      await saveSessionData(updatedSessionData);
+
+      setNewDelegateName('');
+      setAddDelegateOpen(false);
+    } catch (err) {
+      setAddDelegateError((err as Error).message);
+    } finally {
+      setAddingDelegate(false);
+    }
+  }
+
+  // ── Reliability Measures for Background Throttling & Wake Locks ──────────────
+  
+  async function requestWakeLock() {
+    if (typeof window !== 'undefined' && 'wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        console.log('Screen Wake Lock acquired successfully');
+      } catch (err) {
+        console.warn('Failed to acquire Screen Wake Lock:', err);
+      }
+    }
+  }
+
+  function releaseWakeLock() {
+    if (wakeLockRef.current) {
+      try {
+        wakeLockRef.current.release().then(() => {
+          wakeLockRef.current = null;
+          console.log('Screen Wake Lock released');
+        }).catch((err: any) => {
+          console.warn('Failed to release Screen Wake Lock:', err);
+        });
+      } catch (err) {
+        console.warn('Failed to release Screen Wake Lock (sync):', err);
+      }
+    }
+  }
+
+  function playSilentAudio() {
+    try {
+      // 1-second base64 silent WAV file to prevent browser tab from going to sleep
+      const audio = new Audio(
+        'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=='
+      );
+      audio.loop = true;
+      audio.volume = 0.001; // virtually inaudible
+      silentAudioRef.current = audio;
+      audio.play().catch((err) => {
+        console.warn('Autoplay policy prevented silent audio loop play:', err);
+      });
+    } catch (err) {
+      console.warn('Failed to create or play silent audio loop:', err);
+    }
+  }
+
+  function stopSilentAudio() {
+    if (silentAudioRef.current) {
+      try {
+        silentAudioRef.current.pause();
+        silentAudioRef.current = null;
+      } catch (err) {
+        console.warn('Failed to pause silent audio loop:', err);
+      }
+    }
+  }
+
+  function cleanupWatchdog() {
+    if (audioTrackRef.current && handleTrackDeathRef.current) {
+      audioTrackRef.current.removeEventListener('ended', handleTrackDeathRef.current);
+      audioTrackRef.current.removeEventListener('mute', handleTrackDeathRef.current);
+    }
+    audioTrackRef.current = null;
+    handleTrackDeathRef.current = null;
+  }
+
+  async function initiateRecording(stream: MediaStream, startOffset: number) {
+    // 1. Clean up old watchdog to prevent duplicate event listeners
+    cleanupWatchdog();
+
+    // 2. Attach watchdog to the new audio track to detect disconnection or muting
+    const track = stream.getAudioTracks()[0];
+    if (track) {
+      audioTrackRef.current = track;
+      const deathHandler = () => {
+        console.warn('Microphone watchdog triggered (track muted or ended)');
+        setMicWarningOpen(true);
+        attemptMicRecovery();
+      };
+      handleTrackDeathRef.current = deathHandler;
+      track.addEventListener('ended', deathHandler);
+      track.addEventListener('mute', deathHandler);
+    }
+
+    // 3. Set recording tracker refs
+    cumulativeOffsetRef.current = startOffset;
+    chunkStartTimeRef.current = Date.now();
+
+    // 4. Create and start a single MediaRecorder instance
+    let mimeType = 'audio/webm';
+    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+      mimeType = 'audio/webm;codecs=opus';
+    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+      mimeType = 'audio/mp4';
+    }
+
+    const recorder = new MediaRecorder(stream, { mimeType });
+    mediaRecorderRef.current = recorder;
+
+    recorder.onerror = () => {
+      setAudioError('MediaRecorder encountered an error. Check microphone permissions.');
+    };
+
+    recorder.ondataavailable = async (e) => {
+      if (e.data && e.data.size > 0) {
+        const chunkBlob = e.data;
+        const now = Date.now();
+        const duration = (now - chunkStartTimeRef.current) / 1000;
+        chunkStartTimeRef.current = now;
+
+        const currentStartOffset = cumulativeOffsetRef.current;
+        cumulativeOffsetRef.current += duration;
+
+        // Use a unique segment ID
+        const segmentId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+        // Upload this chunk as its own segment
+        const file = new File([chunkBlob], `segment_${segmentId}.bin`, { type: mimeType });
+        const fd = new FormData();
+        fd.append('segmentId', segmentId);
+        fd.append('startOffset', currentStartOffset.toString());
+        fd.append('duration', duration.toString());
+        fd.append('audio', file);
+
+        try {
+          const res = await fetch(
+            `/api/workspace-data/${workspaceId}/session/upload-segment`,
+            { method: 'POST', body: fd }
+          );
+          const data = await res.json();
+          if (data.success) {
+            // Load session to keep workspace activities and manifest segments synchronized
+            loadSession();
+          }
+        } catch (err) {
+          console.error('Failed to upload audio segment chunk', err);
+        }
+      }
+    };
+
+    // Start with timeslice argument to trigger ondataavailable periodically
+    recorder.start(chunkSize * 1000);
+    console.log(`MediaRecorder started with timeslice: ${chunkSize} seconds`);
+  }
+
+  async function attemptMicRecovery() {
+    setRecoveringMic(true);
+    try {
+      // Reacquire mic stream
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      // Stop old recorder if active
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {
+          // ignore if already closed
+        }
+      }
+
+      // Query current cumulative duration from manifest segments
+      const totalDuration = (manifest.segments ?? []).reduce((acc, s) => acc + s.duration, 0);
+
+      // Re-initialize continuous recording
+      await initiateRecording(stream, totalDuration);
+
+      setMicWarningOpen(false);
+      setRecoveringMic(false);
+      console.log('Microphone recovery successful');
+    } catch (err) {
+      console.error('Failed to auto-recover mic:', err);
+      setRecoveringMic(false);
+    }
+  }
+
   // ── Audio recording (preserved from original) ──────────────────────────────
 
   async function startMeeting() {
+    if (loadingSession) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
       setIsMeetingActive(true);
-      setRecordingSeconds(0);
       setAudioError(null);
-      currentSegmentStartOffsetRef.current = 0;
+      setMicWarningOpen(false);
+
+      const totalDuration = (manifest.segments ?? []).reduce((acc, s) => acc + s.duration, 0);
+      setRecordingSeconds(totalDuration);
+      currentSegmentStartOffsetRef.current = totalDuration;
 
       // Init session start timestamp if not set
       if (!sessionData.sessionStart) {
@@ -1186,7 +1455,13 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         await saveSessionData(updated);
       }
 
-      startNextSegment(0);
+      // Initialize the continuous MediaRecorder with timeslicing
+      await initiateRecording(stream, totalDuration);
+
+      // Acquire Screen Wake Lock and play silent background loop audio
+      await requestWakeLock();
+      playSilentAudio();
+
       recordingTimerRef.current = setInterval(() => {
         setRecordingSeconds((prev) => prev + 1);
       }, 1000);
@@ -1195,86 +1470,31 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
     }
   }
 
-  function startNextSegment(cumulativeOffset: number) {
-    if (!mediaStreamRef.current) return;
-
-    const segmentId = Date.now().toString();
-    currentSegmentIdRef.current = segmentId;
-    currentSegmentStartOffsetRef.current = cumulativeOffset;
-    chunkStartTimeRef.current = Date.now();
-
-    let mimeType = 'audio/webm';
-    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-      mimeType = 'audio/webm;codecs=opus';
-    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-      mimeType = 'audio/mp4';
-    }
-
-    const recorder = new MediaRecorder(mediaStreamRef.current, { mimeType });
-    mediaRecorderRef.current = recorder;
-
-    recorder.onerror = () => {
-      setAudioError('MediaRecorder encountered an error. Check microphone permissions.');
-    };
-
-    const chunks: Blob[] = [];
-    recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunks.push(e.data);
-    };
-
-    recorder.onstop = async () => {
-      const duration = (Date.now() - chunkStartTimeRef.current) / 1000;
-      if (chunks.length === 0 || duration < 0.5) return;
-
-      const blob = new Blob(chunks, { type: mimeType });
-      const file = new File([blob], `segment_${segmentId}.bin`, { type: mimeType });
-
-      const fd = new FormData();
-      fd.append('segmentId', segmentId);
-      fd.append('startOffset', cumulativeOffset.toString());
-      fd.append('duration', duration.toString());
-      fd.append('audio', file);
-
-      try {
-        const res = await fetch(
-          `/api/workspace-data/${workspaceId}/session/upload-segment`,
-          { method: 'POST', body: fd }
-        );
-        const data = await res.json();
-        if (data.success) loadSession();
-      } catch (err) {
-        console.error('Failed to upload segment', err);
-      }
-    };
-
-    recorder.start();
-
-    chunkTimerRef.current = setTimeout(() => {
-      const elapsed = (Date.now() - chunkStartTimeRef.current) / 1000;
-      stopCurrentSegmentOnly();
-      startNextSegment(cumulativeOffset + elapsed);
-    }, chunkSize * 1000);
-  }
-
-  function stopCurrentSegmentOnly() {
-    if (chunkTimerRef.current) clearTimeout(chunkTimerRef.current);
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-  }
-
   async function stopMeeting() {
     cleanupRecording();
     setIsMeetingActive(false);
     stopSpeakerTimer();
+    
+    // Release Screen Wake Lock and pause background audio
+    releaseWakeLock();
+    stopSilentAudio();
+
     setTimeout(loadSession, 1000);
   }
 
   function cleanupRecording() {
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     if (chunkTimerRef.current) clearTimeout(chunkTimerRef.current);
+    
+    // Clean up watchdog track event listeners
+    cleanupWatchdog();
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        // ignore state conflicts if already stopped
+      }
     }
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -1541,10 +1761,12 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
   ) {
     if (!currentActivity || currentActivity.type !== 'attendance') return;
     const att = currentActivity as AttendanceActivity;
+    const exists = att.rolls.some((r) => r.countryId === countryId);
+    const newRolls = exists
+      ? att.rolls.map((r) => (r.countryId === countryId ? { ...r, status } : r))
+      : [...att.rolls, { countryId, status }];
     mutateCurrent({
-      rolls: att.rolls.map((r) =>
-        r.countryId === countryId ? { ...r, status } : r
-      ),
+      rolls: newRolls,
     } as Partial<AttendanceActivity>);
   }
 
@@ -2342,9 +2564,10 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
       const suggestedOutcome = forCount > againstCount ? 'passed' : 'failed';
 
       const handleMarkVote = (cid: string, choice: 'for' | 'against' | 'abstain') => {
-        const updated = (v.votes ?? []).map((vt) =>
-          vt.countryId === cid ? { ...vt, vote: choice } : vt
-        );
+        const exists = (v.votes ?? []).some((vt) => vt.countryId === cid);
+        const updated = exists
+          ? (v.votes ?? []).map((vt) => (vt.countryId === cid ? { ...vt, vote: choice } : vt))
+          : [...(v.votes ?? []), { countryId: cid, vote: choice }];
         mutateCurrent({ votes: updated } as any);
       };
 
@@ -2559,7 +2782,9 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
       <div className={styles.persistentIndicator}>
         <span className={`${styles.statusDot} ${isMeetingActive ? styles.statusRecording : ''}`} />
         
-        {isMeetingActive ? (
+        {loadingSession ? (
+          <span className={styles.persistentTimerText}>Loading session…</span>
+        ) : isMeetingActive ? (
           <>
             <span className={styles.persistentTimerText}>
               ACTIVE: {formatTime(recordingSeconds)}
@@ -2576,7 +2801,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         ) : (
           <>
             <span className={styles.persistentTimerText}>
-              PAUSED
+              {sessionData.sessionStart ? 'PAUSED' : 'READY'}
             </span>
             <select
               className="select"
@@ -2596,7 +2821,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
               onClick={startMeeting}
               style={{ fontSize: 11, padding: '2px 8px', fontWeight: 700 }}
             >
-              Begin Session
+              {sessionData.sessionStart ? 'Resume Session' : 'Begin Session'}
             </button>
           </>
         )}
@@ -2621,9 +2846,10 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => {
+                onClick={async () => {
                   setAudioError(null);
-                  startNextSegment(currentSegmentStartOffsetRef.current);
+                  setMicWarningOpen(true);
+                  await attemptMicRecovery();
                 }}
               >
                 Try to Restart Mic
@@ -2649,10 +2875,41 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
             </span>
           </div>
           {isMeetingActive && (
-            <div className={styles.sessionTimer}>{formatTime(recordingSeconds)}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className={styles.sessionTimer}>{formatTime(recordingSeconds)}</div>
+              {micWarningOpen && (
+                <div
+                  style={{
+                    backgroundColor: 'var(--saas-accent-danger)',
+                    color: 'white',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: 'var(--saas-radius-md)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    boxShadow: 'var(--saas-shadow-sm)',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m18.8 6-2 2a5.9 5.9 0 0 0-8.4 0l-2-2"/><path d="M14.5 10.3a2.1 2.1 0 0 0-2.8 0"/><path d="M12 14v8"/><path d="M9 17h6"/></svg>
+                  {recoveringMic ? 'Reconnecting Mic…' : '⚠ Mic Disconnected'}
+                </div>
+              )}
+            </div>
           )}
         </div>
         <div className={styles.sessionHeaderRight}>
+          {sessionData.sessionStart && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setAddDelegateOpen(true)}
+              style={{ marginRight: 8 }}
+            >
+              + Add Delegate
+            </button>
+          )}
           {sessionData.activities.length > 0 && (
             <button type="button" className="btn btn-secondary btn-sm" onClick={handleExport}>
               Export Session (.txt)
@@ -2752,6 +3009,71 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add Delegate Modal ────────────────────────────────────────────── */}
+      {addDelegateOpen && (
+        <div className={styles.modalOverlay} onClick={() => {
+          if (!addingDelegate) {
+            setAddDelegateOpen(false);
+            setNewDelegateName('');
+            setAddDelegateError(null);
+          }
+        }}>
+          <div
+            className={styles.activityPickerModal}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 420 }}
+          >
+            <h3 className={styles.modalTitle}>Add Delegate Mid-Session</h3>
+            <p className={styles.modalSubtitle} style={{ textAlign: 'center', marginBottom: 20 }}>
+              Enter the country or delegation name to add them to this committee session.
+            </p>
+            <form onSubmit={handleAddDelegate} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="label" htmlFor="new-delegate-name-input" style={{ fontSize: 12, fontWeight: 600 }}>Country / Delegation Name</label>
+                <input
+                  id="new-delegate-name-input"
+                  className="input"
+                  placeholder="e.g. Germany"
+                  value={newDelegateName}
+                  onChange={(e) => setNewDelegateName(e.target.value)}
+                  disabled={addingDelegate}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              {addDelegateError && (
+                <div style={{ color: 'var(--saas-accent-danger)', fontSize: 12, fontWeight: 500, textAlign: 'center' }}>
+                  {addDelegateError}
+                </div>
+              )}
+
+              <div className={styles.modalActions} style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => {
+                    setAddDelegateOpen(false);
+                    setNewDelegateName('');
+                    setAddDelegateError(null);
+                  }}
+                  disabled={addingDelegate}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  disabled={addingDelegate || !newDelegateName.trim()}
+                >
+                  {addingDelegate ? 'Adding…' : 'Add Delegate'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
