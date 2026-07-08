@@ -199,6 +199,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 .sidebarItem:hover {

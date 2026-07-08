@@ -552,11 +552,13 @@ function CompletedActivityCard({
   countries,
   isExpanded,
   onToggleExpand,
+  onDelete,
 }: {
   activity: ActivityRecord;
   countries: Country[];
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onDelete: () => void;
 }) {
   const getName = (id: string) => countries.find((c) => c.id === id)?.name ?? id;
 
@@ -566,10 +568,34 @@ function CompletedActivityCard({
     title: isExpanded ? 'Click to collapse details' : 'Click to expand details'
   };
 
-  const expandIcon = (
-    <span className={styles.expandChevron} style={{ marginLeft: 'auto', color: 'var(--saas-text-muted)', fontSize: 11 }}>
-      {isExpanded ? 'Collapse ▲' : 'Expand Details ▼'}
-    </span>
+  const actionArea = (
+    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <span className={styles.expandChevron} style={{ color: 'var(--saas-text-muted)', fontSize: 11 }}>
+        {isExpanded ? 'Collapse ▲' : 'Expand Details ▼'}
+      </span>
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        style={{
+          padding: '2px 6px',
+          color: 'var(--saas-accent-danger)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          fontSize: 11,
+          border: 'none',
+          background: 'transparent',
+          cursor: 'pointer',
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+        Delete
+      </button>
+    </div>
   );
 
   if (activity.type === 'attendance') {
@@ -584,7 +610,7 @@ function CompletedActivityCard({
             <IconAttendance /> Attendance Roll #{att.attendanceIndex}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
-          {expandIcon}
+          {actionArea}
         </div>
         <div style={{ display: 'flex', gap: 24, marginTop: 4 }}>
           <span style={{ fontSize: 13, color: 'var(--saas-text-secondary)' }}>
@@ -645,7 +671,7 @@ function CompletedActivityCard({
             {gsl.outcome === 'passed' ? 'Passed' : 'Failed'}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
-          {expandIcon}
+          {actionArea}
         </div>
         {gsl.outcome === 'passed' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
@@ -735,7 +761,7 @@ function CompletedActivityCard({
             {mc.outcome === 'passed' ? 'Passed' : 'Failed'}
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
-          {expandIcon}
+          {actionArea}
         </div>
         {mc.topic && (
           <p style={{ fontSize: 13.5, color: 'var(--saas-text-primary)', fontWeight: 600, margin: '6px 0 6px 0' }}>
@@ -832,7 +858,7 @@ function CompletedActivityCard({
             </span>
           )}
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
-          {expandIcon}
+          {actionArea}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
           {uc.raisedBy && (
@@ -865,7 +891,7 @@ function CompletedActivityCard({
             </span>
           )}
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
-          {expandIcon}
+          {actionArea}
         </div>
         <p style={{ fontSize: 13.5, color: 'var(--saas-text-primary)', fontWeight: 600, margin: '6px 0' }}>
           {v.drTitle || 'Substantive Vote'}
@@ -955,6 +981,29 @@ function CompletedActivityCard({
             <IconCrisis /> Crisis Log
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            style={{
+              marginLeft: 'auto',
+              padding: '2px 6px',
+              color: 'var(--saas-accent-danger)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+            Delete
+          </button>
         </div>
         <p style={{ fontSize: 13, color: 'var(--saas-text-primary)', fontStyle: 'italic', margin: '6px 0', whiteSpace: 'pre-wrap' }}>
           {c.content}
@@ -976,6 +1025,29 @@ function CompletedActivityCard({
             <IconPresident /> Presidential Address
           </span>
           <span className={styles.activityTimestamp}>[+{formatTime(activity.startedAtOffset)}]</span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            style={{
+              marginLeft: 'auto',
+              padding: '2px 6px',
+              color: 'var(--saas-accent-danger)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+            Delete
+          </button>
         </div>
         <p style={{ fontSize: 13, color: 'var(--saas-text-primary)', margin: '6px 0', whiteSpace: 'pre-wrap' }}>
           {pa.content}
@@ -1029,6 +1101,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
   const audioTrackRef = useRef<MediaStreamTrack | null>(null);
   const handleTrackDeathRef = useRef<(() => void) | null>(null);
   const cumulativeOffsetRef = useRef<number>(0);
+  const webmHeaderRef = useRef<Uint8Array | null>(null);
 
   // ── Session data state ────────────────────────────────────────────────────
   const [sessionData, setSessionData] = useState<SessionData>({
@@ -1064,6 +1137,12 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
   // Mic watchdog and recovery status states
   const [micWarningOpen, setMicWarningOpen] = useState(false);
   const [recoveringMic, setRecoveringMic] = useState(false);
+  const [editAttendanceOpen, setEditAttendanceOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [exportingAudio, setExportingAudio] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   // Mid-session delegate additions
   const [addDelegateOpen, setAddDelegateOpen] = useState(false);
@@ -1098,6 +1177,17 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
       }
     }
   }, [triggerScrollToActivityId, setTriggerScrollToActivityId]);
+
+  // Handle click outside of the export menu dropdown to close it
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleCardExpand = (actId: string) => {
     const nextVal = !expandedCards[actId];
@@ -1256,6 +1346,58 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
     }
   }
 
+  function updateLastAttendanceRoll(
+    countryId: string,
+    status: 'present' | 'present_and_voting' | 'absent'
+  ) {
+    const lastAttendanceIndex = [...sessionData.activities]
+      .reverse()
+      .findIndex((a) => a.type === 'attendance');
+    if (lastAttendanceIndex === -1) return;
+
+    // Convert reverse index to actual array index
+    const actualIndex = sessionData.activities.length - 1 - lastAttendanceIndex;
+    const att = sessionData.activities[actualIndex] as AttendanceActivity;
+
+    const exists = att.rolls.some((r) => r.countryId === countryId);
+    const newRolls = exists
+      ? att.rolls.map((r) => (r.countryId === countryId ? { ...r, status } : r))
+      : [...att.rolls, { countryId, status }];
+
+    const updatedActivities = sessionData.activities.map((a, i) =>
+      i === actualIndex ? { ...a, rolls: newRolls } : a
+    ) as ActivityRecord[];
+
+    const updatedData = {
+      ...sessionData,
+      activities: updatedActivities,
+    };
+    saveSessionData(updatedData);
+  }
+
+  function requestDeleteActivity(activityId: string) {
+    setActivityToDelete(activityId);
+    setDeleteConfirmOpen(true);
+  }
+
+  async function confirmDeleteActivity() {
+    if (!activityToDelete) return;
+    try {
+      const updatedActivities = sessionData.activities.filter(
+        (a) => a.id !== activityToDelete
+      );
+      const updatedSessionData = {
+        ...sessionData,
+        activities: updatedActivities,
+      };
+      await saveSessionData(updatedSessionData);
+      setDeleteConfirmOpen(false);
+      setActivityToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete activity:', err);
+    }
+  }
+
   // ── Reliability Measures for Background Throttling & Wake Locks ──────────────
   
   async function requestWakeLock() {
@@ -1368,11 +1510,40 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         const currentStartOffset = cumulativeOffsetRef.current;
         cumulativeOffsetRef.current += duration;
 
+        // Process chunk to ensure valid WebM headers (EBML magic)
+        const arrayBuffer = await chunkBlob.arrayBuffer();
+        const chunkBytes = new Uint8Array(arrayBuffer);
+
+        let finalBlob = chunkBlob;
+        
+        // Check if chunk starts with EBML Header (0x1A45DFA3)
+        const hasHeader = chunkBytes.length >= 4 &&
+          chunkBytes[0] === 0x1a &&
+          chunkBytes[1] === 0x45 &&
+          chunkBytes[2] === 0xdf &&
+          chunkBytes[3] === 0xa3;
+
+        if (hasHeader) {
+          // Extract and store the header for future chunks
+          const firstClusterIdx = findSequenceIndex(chunkBytes, [0x1f, 0x43, 0xb6, 0x75]);
+          if (firstClusterIdx !== -1) {
+            webmHeaderRef.current = chunkBytes.slice(0, firstClusterIdx);
+            console.log('Saved WebM header of size:', webmHeaderRef.current.length);
+          }
+        } else if (webmHeaderRef.current) {
+          // Prepend the saved header to make this chunk a valid standalone WebM file
+          const merged = new Uint8Array(webmHeaderRef.current.length + chunkBytes.length);
+          merged.set(webmHeaderRef.current, 0);
+          merged.set(chunkBytes, webmHeaderRef.current.length);
+          finalBlob = new Blob([merged], { type: mimeType });
+          console.log('Prepended WebM header to chunk');
+        }
+
         // Use a unique segment ID
         const segmentId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
         // Upload this chunk as its own segment
-        const file = new File([chunkBlob], `segment_${segmentId}.bin`, { type: mimeType });
+        const file = new File([finalBlob], `segment_${segmentId}.bin`, { type: mimeType });
         const fd = new FormData();
         fd.append('segmentId', segmentId);
         fd.append('startOffset', currentStartOffset.toString());
@@ -1883,6 +2054,40 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Export failed', err);
+    }
+  }
+
+  async function handleExportRecording() {
+    setExportingAudio(true);
+    try {
+      const res = await fetch(`/api/workspace-data/${workspaceId}/session/export-recording`);
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to export recording');
+      }
+
+      // Extract filename from Content-Disposition header if available
+      const contentDisposition = res.headers.get('Content-Disposition');
+      let filename = 'recording.webm';
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        const parts = contentDisposition.split('filename=');
+        if (parts.length > 1) {
+          filename = parts[1].replace(/["']/g, '');
+        }
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Audio export failed', err);
+      alert(err instanceof Error ? err.message : 'Audio export failed');
+    } finally {
+      setExportingAudio(false);
     }
   }
 
@@ -2901,19 +3106,82 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         </div>
         <div className={styles.sessionHeaderRight}>
           {sessionData.sessionStart && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setAddDelegateOpen(true)}
-              style={{ marginRight: 8 }}
-            >
-              + Add Delegate
-            </button>
+            <>
+              {sessionData.activities.some((a) => a.type === 'attendance') && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setEditAttendanceOpen(true)}
+                  style={{ marginRight: 8 }}
+                >
+                  Edit Attendance
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setAddDelegateOpen(true)}
+                style={{ marginRight: 8 }}
+              >
+                + Add Delegate
+              </button>
+            </>
           )}
           {sessionData.activities.length > 0 && (
-            <button type="button" className="btn btn-secondary btn-sm" onClick={handleExport}>
-              Export Session (.txt)
-            </button>
+            <div ref={exportMenuRef} style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setExportMenuOpen(!exportMenuOpen)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                Export
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {exportMenuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 'calc(100% + 4px)',
+                    backgroundColor: 'var(--saas-bg-surface)',
+                    border: '1px solid var(--saas-border-default)',
+                    borderRadius: 'var(--saas-radius-md)',
+                    boxShadow: 'var(--saas-shadow-md)',
+                    zIndex: 110,
+                    minWidth: 185,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: 4,
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ textAlign: 'left', padding: '6px 12px', fontSize: 12, justifyContent: 'flex-start', border: 'none', background: 'transparent', width: '100%', cursor: 'pointer' }}
+                    onClick={() => {
+                      handleExport();
+                      setExportMenuOpen(false);
+                    }}
+                  >
+                    📝 Export Text Logs (.txt)
+                  </button>
+                  {manifest.segments && manifest.segments.length > 0 && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ textAlign: 'left', padding: '6px 12px', fontSize: 12, justifyContent: 'flex-start', border: 'none', background: 'transparent', width: '100%', cursor: 'pointer' }}
+                      onClick={() => {
+                        handleExportRecording();
+                        setExportMenuOpen(false);
+                      }}
+                    >
+                      🎵 Export Audio (.webm)
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -2930,6 +3198,7 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
                     countries,
                     isExpanded: !!expandedCards[activity.id],
                     onToggleExpand: () => toggleCardExpand(activity.id),
+                    onDelete: () => requestDeleteActivity(activity.id),
                   })
                 : renderActiveActivity(activity)
             )}
@@ -3078,6 +3347,191 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
         </div>
       )}
 
+      {/* ── Edit Attendance Modal ─────────────────────────────────────────── */}
+      {editAttendanceOpen && (
+        <div className={styles.modalOverlay} onClick={() => setEditAttendanceOpen(false)}>
+          <div
+            className={styles.activityPickerModal}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 500, width: '100%' }}
+          >
+            {(() => {
+              const lastAttendance = [...sessionData.activities]
+                .reverse()
+                .find((a) => a.type === 'attendance') as AttendanceActivity | undefined;
+              
+              if (!lastAttendance) {
+                return (
+                  <div style={{ textAlign: 'center', padding: 20 }}>
+                    <p style={{ color: 'var(--saas-text-secondary)', fontSize: 14 }}>No attendance records found.</p>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => setEditAttendanceOpen(false)}
+                      style={{ marginTop: 16 }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  <h3 className={styles.modalTitle} style={{ marginBottom: 4 }}>Modify Committee Roster Attendance</h3>
+                  <p className={styles.modalSubtitle} style={{ textAlign: 'center', marginBottom: 20 }}>
+                    Editing Attendance Roll Call #{lastAttendance.attendanceIndex}
+                  </p>
+
+                  <div
+                    style={{
+                      maxHeight: 350,
+                      overflowY: 'auto',
+                      width: '100%',
+                      border: '1px solid var(--saas-border-default)',
+                      borderRadius: 'var(--saas-radius-lg)',
+                      marginBottom: 16,
+                      background: 'var(--saas-bg-surface)',
+                    }}
+                  >
+                    {countries.map((country) => {
+                      const roll = lastAttendance.rolls.find((r) => r.countryId === country.id);
+                      const status = roll?.status ?? 'absent';
+                      return (
+                        <div
+                          key={country.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 16px',
+                            borderBottom: '1px solid var(--saas-border-default)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <CountryAvatar name={country.name} size={22} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--saas-text-primary)' }}>{country.name}</span>
+                          </div>
+                          <div className={styles.attendanceOptions} style={{ margin: 0 }}>
+                            {(['present', 'present_and_voting', 'absent'] as const).map((s) => (
+                              <button
+                                type="button"
+                                key={s}
+                                className={`${styles.attendanceBtn} ${
+                                  status === s ? styles.attendanceBtnActive : ''
+                                }`}
+                                onClick={() => updateLastAttendanceRoll(country.id, s)}
+                                style={{ height: 28, fontSize: 10, padding: '0 10px' }}
+                              >
+                                {s === 'present' ? 'P' : s === 'present_and_voting' ? 'P+V' : 'A'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => setEditAttendanceOpen(false)}
+                      style={{ padding: '6px 16px', fontSize: 12 }}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Activity Confirmation Modal ────────────────────────────── */}
+      {deleteConfirmOpen && (
+        <div className={styles.modalOverlay} onClick={() => {
+          setDeleteConfirmOpen(false);
+          setActivityToDelete(null);
+        }}>
+          <div
+            className={styles.activityPickerModal}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 400 }}
+          >
+            <h3 className={styles.modalTitle} style={{ color: 'var(--saas-accent-danger)', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12" y1="17" y2="17"/></svg>
+              Delete Activity
+            </h3>
+            <p className={styles.modalSubtitle} style={{ textAlign: 'center', marginTop: 12, marginBottom: 20 }}>
+              Are you sure you want to delete this activity? This action cannot be undone.
+            </p>
+            <div className={styles.modalActions} style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, width: '100%' }}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setDeleteConfirmOpen(false);
+                  setActivityToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{
+                  backgroundColor: 'var(--saas-accent-danger)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 16px',
+                  borderRadius: 'var(--saas-radius-md)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+                onClick={confirmDeleteActivity}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Audio Export Loading Overlay ────────────────────────────────────── */}
+      {exportingAudio && (
+        <div className={styles.modalOverlay} style={{ zIndex: 9999 }}>
+          <div
+            className={styles.activityPickerModal}
+            style={{ maxWidth: 300, textAlign: 'center', padding: 24 }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  border: '3px solid var(--saas-border-default)',
+                  borderTopColor: 'var(--accent-primary)',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
+              <style>{`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}</style>
+              <h4 style={{ fontWeight: 600, color: 'var(--saas-text-primary)', margin: 0, fontSize: 15 }}>Merging Audio Chunks…</h4>
+              <p style={{ fontSize: 11.5, color: 'var(--saas-text-muted)', margin: 0, lineHeight: 1.4 }}>
+                Combining segments into a single continuous WebM recording. Please wait.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Global Point FAB ─────────────────────────────────────────────── */}
       {isMeetingActive && (
         <button
@@ -3146,4 +3600,19 @@ export default function LiveTracker({ workspaceId, countries }: Props) {
       )}
     </div>
   );
+}
+
+// Helper to find a byte sequence in a Uint8Array (used to locate Matroska/WebM Cluster headers)
+function findSequenceIndex(arr: Uint8Array, seq: number[]): number {
+  for (let i = 0; i < arr.length - seq.length + 1; i++) {
+    let match = true;
+    for (let j = 0; j < seq.length; j++) {
+      if (arr[i + j] !== seq[j]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) return i;
+  }
+  return -1;
 }
